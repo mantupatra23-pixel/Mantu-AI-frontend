@@ -14,7 +14,7 @@ export default function App() {
   const [terminalOutput, setTerminalOutput] = useState("> System Ready. Welcome to Mantu OS.");
   const [isConsoleOpen, setIsConsoleOpen] = useState(false);
 
-  // ⚙️ Settings State
+  // ⚙️ Settings State (Global Platform Settings)
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [settings, setSettings] = useState({ awsIp: '', netlifyToken: '', groqKey: '' });
 
@@ -23,7 +23,11 @@ export default function App() {
   const [publishMethod, setPublishMethod] = useState('cloud'); // 'cloud', 'github', 'custom', 'aws'
   const [gitRepoName, setGitRepoName] = useState("");
   const [gitToken, setGitToken] = useState("");
+  
+  // 🌩️ AWS Specific Deploy States (User's Manual Inputs)
   const [awsInstance, setAwsInstance] = useState('cpu'); // 'cpu' or 'gpu'
+  const [awsTargetIp, setAwsTargetIp] = useState(""); // The target server IP
+  const [awsAuthKey, setAwsAuthKey] = useState(""); // Server password or PEM key
 
   // 🔐 Environment Variables State
   const [isEnvModalOpen, setIsEnvModalOpen] = useState(false);
@@ -141,18 +145,24 @@ export default function App() {
       const apiUrl = `${baseUrl}/api/publish-${publishMethod}`;
       
       let payload = { files: generatedFiles };
+      
+      // Attach payload based on user's choice
       if (publishMethod === 'cloud') payload.netlifyToken = settings.netlifyToken;
       if (publishMethod === 'github') { payload.repoName = gitRepoName; payload.token = gitToken; }
-      if (publishMethod === 'aws') payload.instanceType = awsInstance; // Send CPU/GPU choice
+      if (publishMethod === 'aws') { 
+          payload.instanceType = awsInstance;
+          payload.targetIp = awsTargetIp;  // 🔥 User's Manual IP
+          payload.authKey = awsAuthKey;    // 🔥 User's Server Key
+      }
 
-      setTerminalOutput(`> 🚀 Initiating Deployment via ${publishMethod.toUpperCase()}...\n> Packaging files and sending to Cloud...`);
+      setTerminalOutput(`> 🚀 Initiating Deployment via ${publishMethod.toUpperCase()}...\n> Packaging files and sending to target server...`);
 
       try {
           const res = await fetch(apiUrl, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
           const data = await res.json();
           
           if(data.success) {
-              setTerminalOutput(`> 🎉 SUCCESS! Your app is LIVE!\n> 🌍 URL: ${data.url}`);
+              setTerminalOutput(`> 🎉 SUCCESS! Your app is LIVE!\n> 🌍 URL: ${data.url || awsTargetIp}`);
               if (data.url && data.url.startsWith('http')) window.open(data.url, "_blank"); 
           } else {
               setTerminalOutput(`> ❌ DEPLOY ERROR: ${data.error}`);
@@ -170,9 +180,9 @@ export default function App() {
             <span className="text-blue-600">Mantu</span> Cloud
         </div>
         <div className="flex items-center gap-4">
-           <button onClick={() => setIsSettingsOpen(true)} className="text-gray-400 hover:text-white transition" title="Settings"><SettingsIcon/></button>
+           <button onClick={() => setIsSettingsOpen(true)} className="text-gray-400 hover:text-white transition" title="Platform Settings"><SettingsIcon/></button>
            {view === 'home' && Object.keys(generatedFiles).length > 0 && (
-               <button onClick={() => setView('editor')} className="text-sm font-medium text-blue-400 hover:text-blue-300 transition">Return to Workspace →</button>
+               <button onClick={() => setView('editor')} className="text-sm font-medium text-blue-400 hover:text-blue-300 transition bg-blue-500/10 px-4 py-1.5 rounded-full border border-blue-500/20">Return to Workspace →</button>
            )}
         </div>
       </nav>
@@ -183,16 +193,16 @@ export default function App() {
             <h1 className="text-4xl md:text-6xl font-extrabold mb-6 text-center tracking-tight">
                 Build & Deploy in <span className="text-blue-500">Seconds</span>
             </h1>
-            <p className="text-gray-400 mb-8 max-w-xl text-center text-sm md:text-base">
+            <p className="text-gray-400 mb-8 max-w-xl text-center text-sm md:text-base leading-relaxed">
                 Describe your dream SaaS, App, or Dashboard. Mantu AI will write the code, bundle the project, and deploy it to a live global URL instantly.
             </p>
             
-            <div className="w-full max-w-3xl bg-[#111116] border border-[#2b2b2b] rounded-2xl p-2 flex items-center shadow-2xl focus-within:border-blue-500/50 transition-all z-10">
+            <div className="w-full max-w-3xl bg-[#111116] border border-[#2b2b2b] rounded-2xl p-2 flex items-center shadow-[0_0_30px_rgba(37,99,235,0.15)] focus-within:border-blue-500/50 transition-all z-10">
                 <textarea 
                     value={prompt} 
                     onChange={(e) => setPrompt(e.target.value)} 
                     placeholder="e.g. Build an AI video generator SaaS with a dark theme..." 
-                    className="flex-1 bg-transparent border-none outline-none p-4 text-white resize-none h-14 md:h-16 text-sm md:text-base"
+                    className="flex-1 bg-transparent border-none outline-none p-4 text-white resize-none h-14 md:h-16 text-sm md:text-base font-medium"
                     onKeyDown={(e) => { if(e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleGenerate(); } }}
                 />
                 <button 
@@ -204,8 +214,7 @@ export default function App() {
                 </button>
             </div>
             
-            {/* Background Glow */}
-            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-blue-600/10 blur-[120px] rounded-full pointer-events-none"></div>
+            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-blue-600/5 blur-[150px] rounded-full pointer-events-none"></div>
         </div>
       ) : (
         /* 💻 WORKSPACE VIEW */
@@ -228,19 +237,19 @@ export default function App() {
              <div className="bg-[#111116] border border-[#3b3b3b] rounded-xl w-full max-w-3xl overflow-hidden flex flex-col shadow-2xl">
                 <div className="flex justify-between items-center p-5 border-b border-[#2b2b2b] bg-[#0A0A0E]">
                     <h2 className="text-xl font-bold text-white flex items-center gap-2">🌍 Publish Your App</h2>
-                    <button onClick={() => setIsPublishModalOpen(false)} className="text-gray-400 hover:text-red-400"><CloseIcon/></button>
+                    <button onClick={() => setIsPublishModalOpen(false)} className="text-gray-400 hover:text-red-400 transition"><CloseIcon/></button>
                 </div>
                 
                 <div className="flex flex-col md:flex-row h-full">
+                    {/* Sidebar Options */}
                     <div className="w-full md:w-1/3 bg-[#0A0A0E] border-r border-[#2b2b2b] p-3 flex flex-col gap-2">
                         <button onClick={() => setPublishMethod('cloud')} className={`p-3 text-left rounded-lg border transition-all ${publishMethod === 'cloud' ? 'bg-blue-600/20 border-blue-500 text-blue-400' : 'bg-[#1e1e1e] border-transparent text-gray-400 hover:text-white'}`}>
                             <h3 className="font-bold text-sm">☁️ Mantu Cloud</h3>
                             <p className="text-[10px] mt-1">Free 1-Click Subdomain</p>
                         </button>
                         
-                        {/* 🔥 NEW AWS DEPLOY OPTION */}
                         <button onClick={() => setPublishMethod('aws')} className={`p-3 text-left rounded-lg border transition-all ${publishMethod === 'aws' ? 'bg-amber-500/20 border-amber-500 text-amber-400' : 'bg-[#1e1e1e] border-transparent text-gray-400 hover:text-white'}`}>
-                            <h3 className="font-bold text-sm">🌩️ AWS EC2 Auto</h3>
+                            <h3 className="font-bold text-sm">🌩️ Custom EC2 Auto</h3>
                             <p className="text-[10px] mt-1">Deploy to your own server</p>
                         </button>
 
@@ -248,13 +257,16 @@ export default function App() {
                             <h3 className="font-bold text-sm flex items-center gap-1"><GithubIcon/> GitHub Push</h3>
                             <p className="text-[10px] mt-1">Push code to repository</p>
                         </button>
+                        
                         <button onClick={() => setPublishMethod('custom')} className={`p-3 text-left rounded-lg border transition-all ${publishMethod === 'custom' ? 'bg-orange-500/20 border-orange-500 text-orange-400' : 'bg-[#1e1e1e] border-transparent text-gray-400 hover:text-white'}`}>
                             <h3 className="font-bold text-sm">🔗 Custom Domain</h3>
                             <p className="text-[10px] mt-1">PRO Feature (₹699)</p>
                         </button>
                     </div>
 
+                    {/* Right Panel */}
                     <div className="w-full md:w-2/3 p-6 bg-[#111116]">
+                        
                         {publishMethod === 'cloud' && (
                             <div className="space-y-4">
                                 <h3 className="text-lg font-bold text-blue-400">Instant Global Deployment</h3>
@@ -264,35 +276,37 @@ export default function App() {
                             </div>
                         )}
 
-                        {/* 🔥 NEW AWS DEPLOY UI (CPU vs GPU) */}
+                        {/* 🔥 AWS DEPLOY WITH MANUAL IP & GPU/CPU TOGGLE */}
                         {publishMethod === 'aws' && (
-                            <div className="space-y-5">
-                                <h3 className="text-lg font-bold text-amber-400">AWS Automatic Deployment</h3>
-                                <p className="text-sm text-gray-400">Push your code directly to your Amazon Web Services instance. Select the computing power required for your project.</p>
+                            <div className="space-y-4">
+                                <h3 className="text-lg font-bold text-amber-400">Custom AWS Server Deploy</h3>
+                                <p className="text-sm text-gray-400">Enter your server details to push code directly to your own EC2 instance.</p>
                                 
-                                <div className="grid grid-cols-2 gap-4 mt-2">
-                                    <button 
-                                        onClick={() => setAwsInstance('cpu')} 
-                                        className={`p-4 border rounded-xl text-left transition-all ${awsInstance === 'cpu' ? 'border-amber-500 bg-amber-500/10' : 'border-[#2b2b2b] bg-[#1e1e1e] hover:border-gray-500'}`}
-                                    >
-                                        <h4 className="font-bold text-white mb-1">🖥️ CPU Instance</h4>
-                                        <p className="text-xs text-gray-400">Good for basic Web Apps, Dashboards, and CRUD logic.</p>
-                                        <div className="mt-2 text-xs font-mono text-green-400">t2.micro / t3.small</div>
+                                <div className="grid grid-cols-2 gap-3 mt-2">
+                                    <button onClick={() => setAwsInstance('cpu')} className={`p-3 border rounded-xl text-left transition-all ${awsInstance === 'cpu' ? 'border-amber-500 bg-amber-500/10' : 'border-[#2b2b2b] bg-[#1e1e1e] hover:border-gray-500'}`}>
+                                        <h4 className="font-bold text-white mb-1 text-sm">🖥️ CPU (t2/t3)</h4>
+                                        <p className="text-[10px] text-gray-400">Standard Web Apps</p>
                                     </button>
-                                    
-                                    <button 
-                                        onClick={() => setAwsInstance('gpu')} 
-                                        className={`p-4 border rounded-xl text-left transition-all relative overflow-hidden ${awsInstance === 'gpu' ? 'border-purple-500 bg-purple-500/10' : 'border-[#2b2b2b] bg-[#1e1e1e] hover:border-gray-500'}`}
-                                    >
-                                        <div className="absolute top-0 right-0 bg-purple-500 text-white text-[9px] font-bold px-2 py-0.5 rounded-bl-lg">PRO</div>
-                                        <h4 className="font-bold text-white mb-1">🚀 GPU Instance</h4>
-                                        <p className="text-xs text-gray-400">Required for AI Video Generation, Image rendering & ML.</p>
-                                        <div className="mt-2 text-xs font-mono text-purple-400">g4dn.xlarge (T4/A10G)</div>
+                                    <button onClick={() => setAwsInstance('gpu')} className={`p-3 border rounded-xl text-left transition-all relative overflow-hidden ${awsInstance === 'gpu' ? 'border-purple-500 bg-purple-500/10' : 'border-[#2b2b2b] bg-[#1e1e1e] hover:border-gray-500'}`}>
+                                        <div className="absolute top-0 right-0 bg-purple-500 text-white text-[8px] font-bold px-1.5 py-0.5 rounded-bl-lg">PRO</div>
+                                        <h4 className="font-bold text-white mb-1 text-sm">🚀 GPU (A10G/T4)</h4>
+                                        <p className="text-[10px] text-gray-400">AI / Video Rendering</p>
                                     </button>
                                 </div>
 
-                                <button onClick={handlePublish} className="w-full bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-white font-bold py-3 rounded-lg mt-4 shadow-[0_0_15px_rgba(245,158,11,0.4)] transition">
-                                    Deploy to AWS {awsInstance.toUpperCase()}
+                                <div className="space-y-3 mt-4">
+                                    <div>
+                                        <label className="text-xs text-gray-400 font-bold">Target IP Address</label>
+                                        <input type="text" value={awsTargetIp} onChange={e => setAwsTargetIp(e.target.value)} placeholder="e.g. 13.234.11.22" className="w-full bg-[#1e1e1e] border border-[#2b2b2b] focus:border-amber-500 rounded-md p-2 text-sm text-white mt-1 outline-none transition" />
+                                    </div>
+                                    <div>
+                                        <label className="text-xs text-gray-400 font-bold">Server Auth Key / Password</label>
+                                        <input type="password" value={awsAuthKey} onChange={e => setAwsAuthKey(e.target.value)} placeholder="Enter PEM content or password" className="w-full bg-[#1e1e1e] border border-[#2b2b2b] focus:border-amber-500 rounded-md p-2 text-sm text-white mt-1 outline-none transition" />
+                                    </div>
+                                </div>
+
+                                <button onClick={handlePublish} disabled={!awsTargetIp} className="w-full bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 disabled:opacity-50 text-white font-bold py-3 rounded-lg mt-2 shadow-[0_0_15px_rgba(245,158,11,0.4)] transition">
+                                    Push to {awsTargetIp || 'AWS Server'}
                                 </button>
                             </div>
                         )}
@@ -300,8 +314,8 @@ export default function App() {
                         {publishMethod === 'github' && (
                             <div className="space-y-4">
                                 <h3 className="text-lg font-bold">Push to GitHub</h3>
-                                <div><label className="text-xs text-gray-400">Repository Name</label><input type="text" value={gitRepoName} onChange={e => setGitRepoName(e.target.value)} placeholder="e.g. my-awesome-app" className="w-full bg-[#1e1e1e] border border-[#2b2b2b] rounded-md p-2 text-sm text-white mt-1" /></div>
-                                <div><label className="text-xs text-gray-400">GitHub Token</label><input type="password" value={gitToken} onChange={e => setGitToken(e.target.value)} placeholder="ghp_xxxx..." className="w-full bg-[#1e1e1e] border border-[#2b2b2b] rounded-md p-2 text-sm text-white mt-1" /></div>
+                                <div><label className="text-xs text-gray-400">Repository Name</label><input type="text" value={gitRepoName} onChange={e => setGitRepoName(e.target.value)} placeholder="e.g. my-awesome-app" className="w-full bg-[#1e1e1e] border border-[#2b2b2b] rounded-md p-2 text-sm text-white mt-1 outline-none" /></div>
+                                <div><label className="text-xs text-gray-400">GitHub Token</label><input type="password" value={gitToken} onChange={e => setGitToken(e.target.value)} placeholder="ghp_xxxx..." className="w-full bg-[#1e1e1e] border border-[#2b2b2b] rounded-md p-2 text-sm text-white mt-1 outline-none" /></div>
                                 <button onClick={handlePublish} className="w-full bg-white hover:bg-gray-200 text-black font-bold py-3 rounded-lg mt-2 transition">Commit & Push</button>
                             </div>
                         )}
@@ -310,7 +324,7 @@ export default function App() {
                             <div className="space-y-4">
                                 <h3 className="text-lg font-bold text-orange-400">Connect .COM Domain</h3>
                                 <p className="text-sm text-gray-400">Make it professional. Connect your own custom domain name directly to Mantu Cloud.</p>
-                                <div><label className="text-xs text-gray-400">Your Domain</label><input type="text" placeholder="e.g. www.mukesh-app.com" className="w-full bg-[#1e1e1e] border border-orange-500/50 rounded-md p-2 text-sm text-white mt-1" /></div>
+                                <div><label className="text-xs text-gray-400">Your Domain</label><input type="text" placeholder="e.g. www.mukesh-app.com" className="w-full bg-[#1e1e1e] border border-orange-500/50 rounded-md p-2 text-sm text-white mt-1 outline-none" /></div>
                                 <button onClick={handlePublish} className="w-full bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-400 hover:to-red-400 text-white font-bold py-3 rounded-lg mt-2 shadow-lg transition">💳 Pay ₹699 to Unlock</button>
                             </div>
                         )}
@@ -323,13 +337,13 @@ export default function App() {
       {/* 🔐 ENV VARIABLES MODAL */}
       {isEnvModalOpen && (
           <div className="absolute inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-              <div className="bg-[#111116] border border-[#3b3b3b] rounded-xl w-full max-w-md p-5">
+              <div className="bg-[#111116] border border-[#3b3b3b] rounded-xl w-full max-w-md p-5 shadow-2xl">
                   <div className="flex justify-between items-center mb-4"><h2 className="text-lg font-bold text-white">🔐 Environment Variables</h2><button onClick={() => setIsEnvModalOpen(false)} className="text-gray-400 hover:text-white"><CloseIcon/></button></div>
                   <div className="space-y-3 max-h-[60vh] overflow-y-auto">
                       {projectEnv.map((env, index) => (
                           <div key={index} className="flex gap-2">
-                              <input type="text" placeholder="KEY (e.g. API_URL)" value={env.key} onChange={(e) => { const newEnv = [...projectEnv]; newEnv[index].key = e.target.value; setProjectEnv(newEnv); }} className="w-1/3 bg-[#1e1e1e] border border-[#2b2b2b] rounded p-2 text-xs text-white" />
-                              <input type="password" placeholder="VALUE" value={env.value} onChange={(e) => { const newEnv = [...projectEnv]; newEnv[index].value = e.target.value; setProjectEnv(newEnv); }} className="w-flex-1 w-full bg-[#1e1e1e] border border-[#2b2b2b] rounded p-2 text-xs text-white" />
+                              <input type="text" placeholder="KEY (e.g. API_URL)" value={env.key} onChange={(e) => { const newEnv = [...projectEnv]; newEnv[index].key = e.target.value; setProjectEnv(newEnv); }} className="w-1/3 bg-[#1e1e1e] border border-[#2b2b2b] rounded p-2 text-xs text-white outline-none" />
+                              <input type="password" placeholder="VALUE" value={env.value} onChange={(e) => { const newEnv = [...projectEnv]; newEnv[index].value = e.target.value; setProjectEnv(newEnv); }} className="w-flex-1 w-full bg-[#1e1e1e] border border-[#2b2b2b] rounded p-2 text-xs text-white outline-none" />
                               <button onClick={() => { const newEnv = projectEnv.filter((_, i) => i !== index); setProjectEnv(newEnv.length ? newEnv : [{key:'', value:''}]); }} className="text-red-400 hover:text-red-300 p-2 text-xs font-bold">X</button>
                           </div>
                       ))}
@@ -340,24 +354,24 @@ export default function App() {
           </div>
       )}
 
-      {/* ⚙️ SETTINGS MODAL */}
+      {/* ⚙️ GLOBAL PLATFORM SETTINGS MODAL */}
       {isSettingsOpen && (
            <div className="absolute inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
              <div className="bg-[#111116] border border-[#3b3b3b] rounded-xl w-full max-w-md p-5 shadow-2xl">
-                <div className="flex justify-between items-center mb-4"><h2 className="text-lg font-bold text-white">⚙️ Platform Settings</h2><button onClick={() => setIsSettingsOpen(false)} className="text-gray-400 hover:text-red-400"><CloseIcon/></button></div>
+                <div className="flex justify-between items-center mb-4"><h2 className="text-lg font-bold text-white flex items-center gap-2">⚙️ Mantu Core Settings</h2><button onClick={() => setIsSettingsOpen(false)} className="text-gray-400 hover:text-red-400 transition"><CloseIcon/></button></div>
                 <div className="space-y-4">
                     <div>
-                        <label className="text-xs text-blue-400 font-bold block mb-1">AWS Backend IP (Node.js Port 3000)</label>
-                        <input type="text" value={settings.awsIp} onChange={e => setSettings({...settings, awsIp: e.target.value})} placeholder="e.g. 3.209.1.117" className="w-full bg-[#1e1e1e] border border-blue-500/50 rounded-md p-2 text-sm text-white focus:outline-none focus:border-blue-500" />
-                        <p className="text-[10px] text-gray-500 mt-1">Leave empty to use localhost</p>
+                        <label className="text-xs text-blue-400 font-bold block mb-1">Mantu Backend Master IP (Port 3000)</label>
+                        <input type="text" value={settings.awsIp} onChange={e => setSettings({...settings, awsIp: e.target.value})} placeholder="e.g. 3.209.1.117" className="w-full bg-[#1e1e1e] border border-blue-500/50 rounded-md p-2 text-sm text-white outline-none focus:border-blue-500 transition" />
+                        <p className="text-[10px] text-gray-500 mt-1">This connects your UI to your main Code Generation engine.</p>
                     </div>
                     <div>
-                        <label className="text-xs text-green-400 font-bold block mb-1">Netlify Deploy Token (Mantu Cloud)</label>
-                        <input type="password" value={settings.netlifyToken} onChange={e => setSettings({...settings, netlifyToken: e.target.value})} placeholder="Enter Netlify API Key" className="w-full bg-[#1e1e1e] border border-green-500/50 rounded-md p-2 text-sm text-white focus:outline-none focus:border-green-500" />
+                        <label className="text-xs text-green-400 font-bold block mb-1">Netlify Default Token (For Cloud Deploy)</label>
+                        <input type="password" value={settings.netlifyToken} onChange={e => setSettings({...settings, netlifyToken: e.target.value})} placeholder="Enter Netlify API Key" className="w-full bg-[#1e1e1e] border border-green-500/50 rounded-md p-2 text-sm text-white outline-none focus:border-green-500 transition" />
                     </div>
                     <div>
-                        <label className="text-xs text-orange-400 font-bold block mb-1">Groq API Key (AI Engine)</label>
-                        <input type="password" value={settings.groqKey || ''} onChange={e => setSettings({...settings, groqKey: e.target.value})} placeholder="gsk_..." className="w-full bg-[#1e1e1e] border border-orange-500/50 rounded-md p-2 text-sm text-white focus:outline-none focus:border-orange-500" />
+                        <label className="text-xs text-orange-400 font-bold block mb-1">Groq API Key (AI Master Engine)</label>
+                        <input type="password" value={settings.groqKey || ''} onChange={e => setSettings({...settings, groqKey: e.target.value})} placeholder="gsk_..." className="w-full bg-[#1e1e1e] border border-orange-500/50 rounded-md p-2 text-sm text-white outline-none focus:border-orange-500 transition" />
                     </div>
                     <button onClick={saveSettings} className="w-full bg-white hover:bg-gray-200 text-black font-bold py-2.5 rounded-md mt-4 transition shadow-lg">Save Configuration</button>
                 </div>
