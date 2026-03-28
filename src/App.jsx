@@ -20,9 +20,10 @@ export default function App() {
 
   // 🌍 Publish Modal State
   const [isPublishModalOpen, setIsPublishModalOpen] = useState(false);
-  const [publishMethod, setPublishMethod] = useState('cloud'); // 'cloud', 'github', 'custom'
+  const [publishMethod, setPublishMethod] = useState('cloud'); // 'cloud', 'github', 'custom', 'aws'
   const [gitRepoName, setGitRepoName] = useState("");
   const [gitToken, setGitToken] = useState("");
+  const [awsInstance, setAwsInstance] = useState('cpu'); // 'cpu' or 'gpu'
 
   // 🔐 Environment Variables State
   const [isEnvModalOpen, setIsEnvModalOpen] = useState(false);
@@ -44,8 +45,8 @@ export default function App() {
   // 🖥️ 1. LIVE PREVIEW RENDERER
   const renderLivePreview = () => {
       let htmlFile = generatedFiles['index.html'] || generatedFiles['public/index.html'] || `<div id="root" class="flex items-center justify-center h-screen text-gray-500 font-sans bg-gray-50">App will render here...</div>`;
-      let cssFile = generatedFiles['styles.css'] || generatedFiles['App.css'] || generatedFiles['global.css'] || "";
-      let reactCode = generatedFiles['App.jsx'] || generatedFiles['index.jsx'] || generatedFiles['src/App.jsx'] || "";
+      let cssFile = generatedFiles['styles.css'] || generatedFiles['App.css'] || generatedFiles['global.css'] || generatedFiles['index.css'] || "";
+      let reactCode = generatedFiles['App.jsx'] || generatedFiles['index.jsx'] || generatedFiles['src/App.jsx'] || generatedFiles['src/main.jsx'] || "";
 
       const envObj = {}; 
       projectEnv.forEach(e => { if (e.key.trim()) envObj[e.key.trim()] = e.value.trim(); });
@@ -58,7 +59,7 @@ export default function App() {
   };
   useEffect(() => { if (activeTab === 'preview') renderLivePreview(); }, [activeTab, generatedFiles, projectEnv]);
 
-  // 🤖 2. THE AI GENERATOR (Connects to /api/build)
+  // 🤖 2. THE AI GENERATOR
   const handleGenerate = async () => {
       if (!prompt.trim()) return;
       setIsGenerating(true);
@@ -72,10 +73,7 @@ export default function App() {
           const res = await fetch(`${baseUrl}/api/build`, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ 
-                  prompt, 
-                  customSettings: { groqKey: settings.groqKey, awsIp: settings.awsIp } 
-              })
+              body: JSON.stringify({ prompt, customSettings: { groqKey: settings.groqKey, awsIp: settings.awsIp } })
           });
 
           const reader = res.body.getReader();
@@ -103,13 +101,13 @@ export default function App() {
               }
           }
       } catch (error) {
-          setTerminalOutput(prev => prev + `\n> ❌ CONNECTION ERROR: ${error.message}\n> Please check if your AWS backend (Node.js) is running on Port 3000.`);
+          setTerminalOutput(prev => prev + `\n> ❌ CONNECTION ERROR: ${error.message}\n> Please check if your Backend is running on Port 3000.`);
       } finally {
           setIsGenerating(false);
       }
   };
 
-  // 💻 3. RUN SANDBOX (Connects to /api/run)
+  // 💻 3. RUN SANDBOX
   const handleRunCode = async () => {
       if (!activeFile) return;
       setTerminalOutput(`> Running ${activeFile} in Mantu Sandbox...`);
@@ -129,7 +127,7 @@ export default function App() {
       }
   };
 
-  // 🌍 4. PUBLISH APP (Connects to /api/publish-cloud)
+  // 🌍 4. PUBLISH APP
   const handlePublish = async () => {
       setIsPublishModalOpen(false);
       setIsConsoleOpen(true);
@@ -142,23 +140,20 @@ export default function App() {
       const baseUrl = settings.awsIp ? `http://${settings.awsIp}:3000` : 'http://localhost:3000';
       const apiUrl = `${baseUrl}/api/publish-${publishMethod}`;
       
-      const payload = publishMethod === 'cloud' 
-          ? { files: generatedFiles, netlifyToken: settings.netlifyToken }
-          : { repoName: gitRepoName, token: gitToken, files: generatedFiles };
+      let payload = { files: generatedFiles };
+      if (publishMethod === 'cloud') payload.netlifyToken = settings.netlifyToken;
+      if (publishMethod === 'github') { payload.repoName = gitRepoName; payload.token = gitToken; }
+      if (publishMethod === 'aws') payload.instanceType = awsInstance; // Send CPU/GPU choice
 
       setTerminalOutput(`> 🚀 Initiating Deployment via ${publishMethod.toUpperCase()}...\n> Packaging files and sending to Cloud...`);
 
       try {
-          const res = await fetch(apiUrl, { 
-              method: 'POST', 
-              headers: { 'Content-Type': 'application/json' }, 
-              body: JSON.stringify(payload) 
-          });
+          const res = await fetch(apiUrl, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
           const data = await res.json();
           
           if(data.success) {
               setTerminalOutput(`> 🎉 SUCCESS! Your app is LIVE!\n> 🌍 URL: ${data.url}`);
-              window.open(data.url, "_blank"); 
+              if (data.url && data.url.startsWith('http')) window.open(data.url, "_blank"); 
           } else {
               setTerminalOutput(`> ❌ DEPLOY ERROR: ${data.error}`);
           }
@@ -184,7 +179,7 @@ export default function App() {
 
       {/* 🏠 HOME VIEW */}
       {view === 'home' ? (
-        <div className="flex-1 flex flex-col items-center justify-center p-4">
+        <div className="flex-1 flex flex-col items-center justify-center p-4 relative">
             <h1 className="text-4xl md:text-6xl font-extrabold mb-6 text-center tracking-tight">
                 Build & Deploy in <span className="text-blue-500">Seconds</span>
             </h1>
@@ -192,11 +187,11 @@ export default function App() {
                 Describe your dream SaaS, App, or Dashboard. Mantu AI will write the code, bundle the project, and deploy it to a live global URL instantly.
             </p>
             
-            <div className="w-full max-w-3xl bg-[#111116] border border-[#2b2b2b] rounded-2xl p-2 flex items-center shadow-2xl focus-within:border-blue-500/50 transition-all">
+            <div className="w-full max-w-3xl bg-[#111116] border border-[#2b2b2b] rounded-2xl p-2 flex items-center shadow-2xl focus-within:border-blue-500/50 transition-all z-10">
                 <textarea 
                     value={prompt} 
                     onChange={(e) => setPrompt(e.target.value)} 
-                    placeholder="e.g. Build a salon booking app landing page with a dark theme..." 
+                    placeholder="e.g. Build an AI video generator SaaS with a dark theme..." 
                     className="flex-1 bg-transparent border-none outline-none p-4 text-white resize-none h-14 md:h-16 text-sm md:text-base"
                     onKeyDown={(e) => { if(e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleGenerate(); } }}
                 />
@@ -208,6 +203,9 @@ export default function App() {
                     {isGenerating ? 'Building...' : <><SparkleIcon /> Generate</>}
                 </button>
             </div>
+            
+            {/* Background Glow */}
+            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-blue-600/10 blur-[120px] rounded-full pointer-events-none"></div>
         </div>
       ) : (
         /* 💻 WORKSPACE VIEW */
@@ -217,9 +215,9 @@ export default function App() {
               generatedFiles={generatedFiles} activeFile={activeFile} setActiveFile={setActiveFile}
               previewHtml={previewHtml} terminalOutput={terminalOutput} setTerminalOutput={setTerminalOutput}
               isConsoleOpen={isConsoleOpen} setIsConsoleOpen={setIsConsoleOpen}
-              handleRunCode={handleRunCode} // Passed the Run Function
-              setIsPublishModalOpen={setIsPublishModalOpen} // Passed Publish Modal Trigger
-              setIsEnvModalOpen={setIsEnvModalOpen} // Passed Env Modal Trigger
+              handleRunCode={handleRunCode} 
+              setIsPublishModalOpen={setIsPublishModalOpen} 
+              setIsEnvModalOpen={setIsEnvModalOpen} 
           />
         </div>
       )}
@@ -227,18 +225,25 @@ export default function App() {
       {/* 🌍 PUBLISH MODAL */}
       {isPublishModalOpen && (
            <div className="absolute inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-             <div className="bg-[#111116] border border-[#3b3b3b] rounded-xl w-full max-w-2xl overflow-hidden flex flex-col">
-                <div className="flex justify-between items-center p-5 border-b border-[#2b2b2b]">
+             <div className="bg-[#111116] border border-[#3b3b3b] rounded-xl w-full max-w-3xl overflow-hidden flex flex-col shadow-2xl">
+                <div className="flex justify-between items-center p-5 border-b border-[#2b2b2b] bg-[#0A0A0E]">
                     <h2 className="text-xl font-bold text-white flex items-center gap-2">🌍 Publish Your App</h2>
                     <button onClick={() => setIsPublishModalOpen(false)} className="text-gray-400 hover:text-red-400"><CloseIcon/></button>
                 </div>
                 
-                <div className="flex flex-col md:flex-row">
+                <div className="flex flex-col md:flex-row h-full">
                     <div className="w-full md:w-1/3 bg-[#0A0A0E] border-r border-[#2b2b2b] p-3 flex flex-col gap-2">
                         <button onClick={() => setPublishMethod('cloud')} className={`p-3 text-left rounded-lg border transition-all ${publishMethod === 'cloud' ? 'bg-blue-600/20 border-blue-500 text-blue-400' : 'bg-[#1e1e1e] border-transparent text-gray-400 hover:text-white'}`}>
                             <h3 className="font-bold text-sm">☁️ Mantu Cloud</h3>
                             <p className="text-[10px] mt-1">Free 1-Click Subdomain</p>
                         </button>
+                        
+                        {/* 🔥 NEW AWS DEPLOY OPTION */}
+                        <button onClick={() => setPublishMethod('aws')} className={`p-3 text-left rounded-lg border transition-all ${publishMethod === 'aws' ? 'bg-amber-500/20 border-amber-500 text-amber-400' : 'bg-[#1e1e1e] border-transparent text-gray-400 hover:text-white'}`}>
+                            <h3 className="font-bold text-sm">🌩️ AWS EC2 Auto</h3>
+                            <p className="text-[10px] mt-1">Deploy to your own server</p>
+                        </button>
+
                         <button onClick={() => setPublishMethod('github')} className={`p-3 text-left rounded-lg border transition-all ${publishMethod === 'github' ? 'bg-white/10 border-white text-white' : 'bg-[#1e1e1e] border-transparent text-gray-400 hover:text-white'}`}>
                             <h3 className="font-bold text-sm flex items-center gap-1"><GithubIcon/> GitHub Push</h3>
                             <p className="text-[10px] mt-1">Push code to repository</p>
@@ -249,13 +254,46 @@ export default function App() {
                         </button>
                     </div>
 
-                    <div className="w-full md:w-2/3 p-5">
+                    <div className="w-full md:w-2/3 p-6 bg-[#111116]">
                         {publishMethod === 'cloud' && (
                             <div className="space-y-4">
                                 <h3 className="text-lg font-bold text-blue-400">Instant Global Deployment</h3>
-                                <p className="text-xs text-gray-400">Deploy your Frontend and Serverless Backend instantly. Zero configuration required. Your app will be live globally in 5 seconds.</p>
-                                <div className="bg-[#1e1e1e] p-3 rounded border border-[#2b2b2b] text-xs text-green-400 font-mono">Cost: ₹0.00 / month</div>
+                                <p className="text-sm text-gray-400">Deploy your Frontend and Serverless Backend instantly. Zero configuration required. Your app will be live globally in 5 seconds.</p>
+                                <div className="bg-[#1e1e1e] p-3 rounded border border-[#2b2b2b] text-sm text-green-400 font-mono">Cost: ₹0.00 / month</div>
                                 <button onClick={handlePublish} className="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-3 rounded-lg mt-4 transition shadow-[0_0_15px_rgba(37,99,235,0.4)]">🚀 Go Live Now</button>
+                            </div>
+                        )}
+
+                        {/* 🔥 NEW AWS DEPLOY UI (CPU vs GPU) */}
+                        {publishMethod === 'aws' && (
+                            <div className="space-y-5">
+                                <h3 className="text-lg font-bold text-amber-400">AWS Automatic Deployment</h3>
+                                <p className="text-sm text-gray-400">Push your code directly to your Amazon Web Services instance. Select the computing power required for your project.</p>
+                                
+                                <div className="grid grid-cols-2 gap-4 mt-2">
+                                    <button 
+                                        onClick={() => setAwsInstance('cpu')} 
+                                        className={`p-4 border rounded-xl text-left transition-all ${awsInstance === 'cpu' ? 'border-amber-500 bg-amber-500/10' : 'border-[#2b2b2b] bg-[#1e1e1e] hover:border-gray-500'}`}
+                                    >
+                                        <h4 className="font-bold text-white mb-1">🖥️ CPU Instance</h4>
+                                        <p className="text-xs text-gray-400">Good for basic Web Apps, Dashboards, and CRUD logic.</p>
+                                        <div className="mt-2 text-xs font-mono text-green-400">t2.micro / t3.small</div>
+                                    </button>
+                                    
+                                    <button 
+                                        onClick={() => setAwsInstance('gpu')} 
+                                        className={`p-4 border rounded-xl text-left transition-all relative overflow-hidden ${awsInstance === 'gpu' ? 'border-purple-500 bg-purple-500/10' : 'border-[#2b2b2b] bg-[#1e1e1e] hover:border-gray-500'}`}
+                                    >
+                                        <div className="absolute top-0 right-0 bg-purple-500 text-white text-[9px] font-bold px-2 py-0.5 rounded-bl-lg">PRO</div>
+                                        <h4 className="font-bold text-white mb-1">🚀 GPU Instance</h4>
+                                        <p className="text-xs text-gray-400">Required for AI Video Generation, Image rendering & ML.</p>
+                                        <div className="mt-2 text-xs font-mono text-purple-400">g4dn.xlarge (T4/A10G)</div>
+                                    </button>
+                                </div>
+
+                                <button onClick={handlePublish} className="w-full bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-white font-bold py-3 rounded-lg mt-4 shadow-[0_0_15px_rgba(245,158,11,0.4)] transition">
+                                    Deploy to AWS {awsInstance.toUpperCase()}
+                                </button>
                             </div>
                         )}
 
@@ -271,7 +309,7 @@ export default function App() {
                         {publishMethod === 'custom' && (
                             <div className="space-y-4">
                                 <h3 className="text-lg font-bold text-orange-400">Connect .COM Domain</h3>
-                                <p className="text-xs text-gray-400">Make it professional. Connect your own custom domain name directly to Mantu Cloud.</p>
+                                <p className="text-sm text-gray-400">Make it professional. Connect your own custom domain name directly to Mantu Cloud.</p>
                                 <div><label className="text-xs text-gray-400">Your Domain</label><input type="text" placeholder="e.g. www.mukesh-app.com" className="w-full bg-[#1e1e1e] border border-orange-500/50 rounded-md p-2 text-sm text-white mt-1" /></div>
                                 <button onClick={handlePublish} className="w-full bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-400 hover:to-red-400 text-white font-bold py-3 rounded-lg mt-2 shadow-lg transition">💳 Pay ₹699 to Unlock</button>
                             </div>
