@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import Workspace from './Workspace';
 import { SparkleIcon, SettingsIcon, TerminalIcon, CloseIcon, GithubIcon } from './Icons';
 
@@ -14,20 +14,34 @@ export default function App() {
   const [terminalOutput, setTerminalOutput] = useState("> System Ready. Welcome to Mantu OS.");
   const [isConsoleOpen, setIsConsoleOpen] = useState(false);
 
-  // ⚙️ Settings State (Global Platform Settings)
+  // 🎤 Live Voice Typing State
+  const [isListening, setIsListening] = useState(false);
+  const recognitionRef = useRef(null);
+
+  // 📎 Attachments State (Image, Voice File, URL)
+  const [attachedImage, setAttachedImage] = useState(null);
+  const [attachedVoice, setAttachedVoice] = useState(null);
+  const [voiceUrl, setVoiceUrl] = useState('');
+  const [showUrlInput, setShowUrlInput] = useState(false);
+  
+  const imageInputRef = useRef(null);
+  const voiceInputRef = useRef(null);
+
+  // ⚙️ Settings State
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [settings, setSettings] = useState({ awsIp: '', netlifyToken: '', groqKey: '' });
 
   // 🌍 Publish Modal State
   const [isPublishModalOpen, setIsPublishModalOpen] = useState(false);
-  const [publishMethod, setPublishMethod] = useState('cloud'); // 'cloud', 'github', 'custom', 'aws'
+  const [publishMethod, setPublishMethod] = useState('cloud'); 
   const [gitRepoName, setGitRepoName] = useState("");
   const [gitToken, setGitToken] = useState("");
   
-  // 🌩️ AWS Specific Deploy States (User's Manual Inputs)
-  const [awsInstance, setAwsInstance] = useState('cpu'); // 'cpu' or 'gpu'
-  const [awsTargetIp, setAwsTargetIp] = useState(""); // The target server IP
-  const [awsAuthKey, setAwsAuthKey] = useState(""); // Server password or PEM key
+  // 🌩️ AWS Specific Deploy States
+  const [awsInstance, setAwsInstance] = useState('cpu'); 
+  const [awsTargetIp, setAwsTargetIp] = useState(""); 
+  const [awsAuthKey, setAwsAuthKey] = useState(""); 
+  const [pemLoaded, setPemLoaded] = useState(false); 
 
   // 🔐 Environment Variables State
   const [isEnvModalOpen, setIsEnvModalOpen] = useState(false);
@@ -44,6 +58,73 @@ export default function App() {
       setIsSettingsOpen(false); 
       setTerminalOutput("> Settings Saved Successfully.");
       setIsConsoleOpen(true);
+  };
+
+  // 🎙️ LIVE VOICE TYPING (Speech to Text)
+  const toggleListening = () => {
+      if (isListening) {
+          recognitionRef.current?.stop();
+          setIsListening(false);
+          return;
+      }
+
+      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+      if (!SpeechRecognition) {
+          alert("Bhai, aapka browser Voice Typing support nahi karta. Please Chrome use karein!");
+          return;
+      }
+
+      const recognition = new SpeechRecognition();
+      recognition.continuous = true;
+      recognition.interimResults = true;
+      recognition.lang = 'en-IN'; // Indian English / Hindi mix support
+
+      let initialPrompt = prompt;
+
+      recognition.onresult = (event) => {
+          let currentTranscript = '';
+          for (let i = 0; i < event.results.length; i++) {
+              currentTranscript += event.results[i][0].transcript;
+          }
+          setPrompt(initialPrompt + (initialPrompt ? ' ' : '') + currentTranscript);
+      };
+
+      recognition.onerror = (event) => {
+          console.error("Speech Error:", event.error);
+          setIsListening(false);
+      };
+
+      recognition.onend = () => {
+          setIsListening(false);
+      };
+
+      recognitionRef.current = recognition;
+      recognition.start();
+      setIsListening(true);
+  };
+
+  // 📎 ATTACHMENT HANDLERS
+  const handleFileUpload = (e, type) => {
+      const file = e.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = (event) => {
+          if (type === 'image') setAttachedImage(event.target.result);
+          if (type === 'voice') setAttachedVoice(event.target.result);
+      };
+      reader.readAsDataURL(file);
+  };
+
+  // 🌩️ AWS PEM FILE HANDLER
+  const handlePemUpload = (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = (event) => {
+          setAwsAuthKey(event.target.result);
+          setPemLoaded(true);
+      };
+      reader.readAsText(file); 
   };
 
   // 🖥️ 1. LIVE PREVIEW RENDERER
@@ -66,6 +147,8 @@ export default function App() {
   // 🤖 2. THE AI GENERATOR
   const handleGenerate = async () => {
       if (!prompt.trim()) return;
+      if (isListening) toggleListening(); // Stop mic if generating
+      
       setIsGenerating(true);
       setView('editor');
       setTerminalOutput("> Initializing Mantu AI Engine...\n> Architecting project blueprint...");
@@ -74,10 +157,18 @@ export default function App() {
       
       try {
           const baseUrl = settings.awsIp ? `http://${settings.awsIp}:3000` : 'http://localhost:3000';
+          const payload = { 
+              prompt, 
+              image: attachedImage, 
+              voice: attachedVoice, 
+              voiceUrl: voiceUrl,
+              customSettings: { groqKey: settings.groqKey, awsIp: settings.awsIp } 
+          };
+
           const res = await fetch(`${baseUrl}/api/build`, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ prompt, customSettings: { groqKey: settings.groqKey, awsIp: settings.awsIp } })
+              body: JSON.stringify(payload)
           });
 
           const reader = res.body.getReader();
@@ -146,13 +237,12 @@ export default function App() {
       
       let payload = { files: generatedFiles };
       
-      // Attach payload based on user's choice
       if (publishMethod === 'cloud') payload.netlifyToken = settings.netlifyToken;
       if (publishMethod === 'github') { payload.repoName = gitRepoName; payload.token = gitToken; }
       if (publishMethod === 'aws') { 
           payload.instanceType = awsInstance;
-          payload.targetIp = awsTargetIp;  // 🔥 User's Manual IP
-          payload.authKey = awsAuthKey;    // 🔥 User's Server Key
+          payload.targetIp = awsTargetIp;  
+          payload.authKey = awsAuthKey;    
       }
 
       setTerminalOutput(`> 🚀 Initiating Deployment via ${publishMethod.toUpperCase()}...\n> Packaging files and sending to target server...`);
@@ -197,21 +287,59 @@ export default function App() {
                 Describe your dream SaaS, App, or Dashboard. Mantu AI will write the code, bundle the project, and deploy it to a live global URL instantly.
             </p>
             
-            <div className="w-full max-w-3xl bg-[#111116] border border-[#2b2b2b] rounded-2xl p-2 flex items-center shadow-[0_0_30px_rgba(37,99,235,0.15)] focus-within:border-blue-500/50 transition-all z-10">
-                <textarea 
-                    value={prompt} 
-                    onChange={(e) => setPrompt(e.target.value)} 
-                    placeholder="e.g. Build an AI video generator SaaS with a dark theme..." 
-                    className="flex-1 bg-transparent border-none outline-none p-4 text-white resize-none h-14 md:h-16 text-sm md:text-base font-medium"
-                    onKeyDown={(e) => { if(e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleGenerate(); } }}
-                />
-                <button 
-                    onClick={handleGenerate} 
-                    disabled={isGenerating || !prompt.trim()} 
-                    className="bg-blue-600 hover:bg-blue-500 disabled:bg-blue-600/50 text-white p-3 md:px-6 md:py-4 rounded-xl font-bold flex items-center gap-2 transition"
-                >
-                    {isGenerating ? 'Building...' : <><SparkleIcon /> Generate</>}
-                </button>
+            {/* 🔥 NEW ATTACHMENT & PROMPT BOX (With Mic) 🔥 */}
+            <div className={`w-full max-w-3xl bg-[#111116] border ${isListening ? 'border-red-500 shadow-[0_0_30px_rgba(239,68,68,0.2)]' : 'border-[#2b2b2b] shadow-[0_0_30px_rgba(37,99,235,0.15)]'} rounded-2xl flex flex-col focus-within:border-blue-500/50 transition-all z-10`}>
+                
+                {/* Previews */}
+                {(attachedImage || attachedVoice || showUrlInput) && (
+                    <div className="flex items-center gap-3 p-3 border-b border-[#2b2b2b] bg-[#0A0A0E] rounded-t-2xl overflow-x-auto">
+                        {attachedImage && (
+                            <div className="relative shrink-0"><img src={attachedImage} alt="preview" className="h-12 w-12 object-cover rounded border border-[#3b3b3b]"/><button onClick={() => setAttachedImage(null)} className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-4 h-4 text-[10px] font-bold">X</button></div>
+                        )}
+                        {attachedVoice && (
+                            <div className="bg-blue-500/20 text-blue-400 text-xs px-3 py-1.5 rounded-full flex items-center gap-2 border border-blue-500/30">🎤 Audio Attached <button onClick={() => setAttachedVoice(null)} className="text-red-400 font-bold hover:text-red-300">X</button></div>
+                        )}
+                        {showUrlInput && (
+                            <div className="flex items-center gap-2 w-full max-w-sm"><input type="url" value={voiceUrl} onChange={(e)=>setVoiceUrl(e.target.value)} placeholder="Paste Voice URL here..." className="w-full bg-[#1e1e1e] border border-[#3b3b3b] rounded p-1 text-xs text-white outline-none focus:border-blue-500"/><button onClick={()=>{setShowUrlInput(false); setVoiceUrl('');}} className="text-gray-400 hover:text-red-400 text-xs font-bold">Cancel</button></div>
+                        )}
+                    </div>
+                )}
+
+                <div className="flex items-center p-2 relative">
+                    {/* Toolbar Icons */}
+                    <div className="flex items-center gap-1 pl-2 pr-4 border-r border-[#2b2b2b]">
+                        
+                        {/* 🎙️ LIVE MIC BUTTON */}
+                        <button onClick={toggleListening} className={`p-1.5 transition rounded-full ${isListening ? 'text-red-500 bg-red-500/20 animate-pulse' : 'text-gray-400 hover:text-red-400'}`} title="Live Voice Typing">
+                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z"></path></svg>
+                        </button>
+
+                        <input type="file" ref={imageInputRef} onChange={(e) => handleFileUpload(e, 'image')} accept="image/*" className="hidden" />
+                        <button onClick={() => imageInputRef.current.click()} className="text-gray-400 hover:text-blue-400 p-1.5 transition" title="Upload Image">
+                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>
+                        </button>
+
+                        <input type="file" ref={voiceInputRef} onChange={(e) => handleFileUpload(e, 'voice')} accept="audio/*" className="hidden" />
+                        <button onClick={() => voiceInputRef.current.click()} className="text-gray-400 hover:text-green-400 p-1.5 transition" title="Upload Audio File">
+                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M12 1a3 3 0 00-3 3v8a3 3 0 006 0V4a3 3 0 00-3-3z"></path><path d="M19 10v2a7 7 0 01-14 0v-2"></path><line x1="12" y1="19" x2="12" y2="23"></line></svg>
+                        </button>
+
+                        <button onClick={() => setShowUrlInput(!showUrlInput)} className="text-gray-400 hover:text-purple-400 p-1.5 transition" title="Attach Voice URL">
+                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"></path></svg>
+                        </button>
+                    </div>
+
+                    <textarea 
+                        value={prompt} 
+                        onChange={(e) => setPrompt(e.target.value)} 
+                        placeholder={isListening ? "Listening... Speak now!" : "e.g. Build an AI video generator SaaS with a dark theme..."}
+                        className={`flex-1 bg-transparent border-none outline-none p-3 text-white resize-none h-14 text-sm font-medium ${isListening ? 'placeholder-red-400' : ''}`}
+                        onKeyDown={(e) => { if(e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleGenerate(); } }}
+                    />
+                    <button onClick={handleGenerate} disabled={isGenerating || !prompt.trim()} className="bg-blue-600 hover:bg-blue-500 disabled:bg-blue-600/50 text-white p-3 rounded-xl font-bold flex items-center gap-2 transition ml-2">
+                        {isGenerating ? 'Building...' : <><SparkleIcon /> Generate</>}
+                    </button>
+                </div>
             </div>
             
             <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-blue-600/5 blur-[150px] rounded-full pointer-events-none"></div>
@@ -241,7 +369,6 @@ export default function App() {
                 </div>
                 
                 <div className="flex flex-col md:flex-row h-full">
-                    {/* Sidebar Options */}
                     <div className="w-full md:w-1/3 bg-[#0A0A0E] border-r border-[#2b2b2b] p-3 flex flex-col gap-2">
                         <button onClick={() => setPublishMethod('cloud')} className={`p-3 text-left rounded-lg border transition-all ${publishMethod === 'cloud' ? 'bg-blue-600/20 border-blue-500 text-blue-400' : 'bg-[#1e1e1e] border-transparent text-gray-400 hover:text-white'}`}>
                             <h3 className="font-bold text-sm">☁️ Mantu Cloud</h3>
@@ -264,23 +391,19 @@ export default function App() {
                         </button>
                     </div>
 
-                    {/* Right Panel */}
                     <div className="w-full md:w-2/3 p-6 bg-[#111116]">
-                        
                         {publishMethod === 'cloud' && (
                             <div className="space-y-4">
                                 <h3 className="text-lg font-bold text-blue-400">Instant Global Deployment</h3>
-                                <p className="text-sm text-gray-400">Deploy your Frontend and Serverless Backend instantly. Zero configuration required. Your app will be live globally in 5 seconds.</p>
-                                <div className="bg-[#1e1e1e] p-3 rounded border border-[#2b2b2b] text-sm text-green-400 font-mono">Cost: ₹0.00 / month</div>
+                                <p className="text-sm text-gray-400">Deploy your Frontend and Serverless Backend instantly. Zero configuration required.</p>
                                 <button onClick={handlePublish} className="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-3 rounded-lg mt-4 transition shadow-[0_0_15px_rgba(37,99,235,0.4)]">🚀 Go Live Now</button>
                             </div>
                         )}
 
-                        {/* 🔥 AWS DEPLOY WITH MANUAL IP & GPU/CPU TOGGLE */}
+                        {/* 🔥 AWS DEPLOY WITH PEM FILE UPLOAD */}
                         {publishMethod === 'aws' && (
                             <div className="space-y-4">
                                 <h3 className="text-lg font-bold text-amber-400">Custom AWS Server Deploy</h3>
-                                <p className="text-sm text-gray-400">Enter your server details to push code directly to your own EC2 instance.</p>
                                 
                                 <div className="grid grid-cols-2 gap-3 mt-2">
                                     <button onClick={() => setAwsInstance('cpu')} className={`p-3 border rounded-xl text-left transition-all ${awsInstance === 'cpu' ? 'border-amber-500 bg-amber-500/10' : 'border-[#2b2b2b] bg-[#1e1e1e] hover:border-gray-500'}`}>
@@ -300,8 +423,20 @@ export default function App() {
                                         <input type="text" value={awsTargetIp} onChange={e => setAwsTargetIp(e.target.value)} placeholder="e.g. 13.234.11.22" className="w-full bg-[#1e1e1e] border border-[#2b2b2b] focus:border-amber-500 rounded-md p-2 text-sm text-white mt-1 outline-none transition" />
                                     </div>
                                     <div>
-                                        <label className="text-xs text-gray-400 font-bold">Server Auth Key / Password</label>
-                                        <input type="password" value={awsAuthKey} onChange={e => setAwsAuthKey(e.target.value)} placeholder="Enter PEM content or password" className="w-full bg-[#1e1e1e] border border-[#2b2b2b] focus:border-amber-500 rounded-md p-2 text-sm text-white mt-1 outline-none transition" />
+                                        <label className="text-xs text-gray-400 font-bold flex justify-between">
+                                            <span>Server Auth Key (.pem) / Password</span>
+                                            {pemLoaded && <span className="text-green-400">✅ PEM Loaded</span>}
+                                        </label>
+                                        <div className="flex gap-2 mt-1">
+                                            <input type="password" value={awsAuthKey} onChange={e => setAwsAuthKey(e.target.value)} placeholder="Paste password or upload .pem" className="flex-1 bg-[#1e1e1e] border border-[#2b2b2b] focus:border-amber-500 rounded-md p-2 text-sm text-white outline-none transition" />
+                                            
+                                            {/* 🔥 THE NEW PEM UPLOAD BUTTON */}
+                                            <label className="bg-[#1e1e1e] border border-[#2b2b2b] hover:border-amber-500 text-gray-300 px-3 py-2 rounded-md cursor-pointer flex items-center justify-center text-xs font-bold transition whitespace-nowrap">
+                                                <svg className="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path></svg>
+                                                Upload .pem
+                                                <input type="file" accept=".pem,.cer,.txt" className="hidden" onChange={handlePemUpload} />
+                                            </label>
+                                        </div>
                                     </div>
                                 </div>
 
