@@ -47,7 +47,11 @@ export default function App() {
 
   useEffect(() => { 
       const saved = localStorage.getItem('mantuSettings'); 
-      if (saved) setSettings(JSON.parse(saved)); 
+      if (saved) {
+          const parsed = JSON.parse(saved);
+          // Safety fallback ensuring aiModel exists
+          setSettings({ ...parsed, aiModel: parsed.aiModel || 'groq' }); 
+      }
       document.body.className = theme === 'dark' ? 'bg-[#030303] text-white' : 'bg-gray-50 text-black';
   }, [theme]);
 
@@ -59,7 +63,7 @@ export default function App() {
   const saveSettings = () => { 
       localStorage.setItem('mantuSettings', JSON.stringify(settings)); 
       setIsSettingsOpen(false); 
-      setTerminalOutput(`> Settings Saved. Active AI: ${settings.aiModel.toUpperCase()}`);
+      setTerminalOutput(`> Settings Saved. Active Engine: ${(settings.aiModel || 'groq').toUpperCase()}`);
       setIsConsoleOpen(true);
   };
 
@@ -132,16 +136,33 @@ export default function App() {
       setActionLogs(prev => [...prev, { id: Date.now(), type: 'user', text: prompt }]);
       setIsGenerating(true); setView('editor'); setActiveTab('code'); setIsConsoleOpen(true);
       
-      if (view === 'home') {
-          setGeneratedFiles({}); setActionLogs([{ id: Date.now(), type: 'user', text: prompt }]);
-          setTerminalOutput(`> Initializing Engine [Model: ${settings.aiModel.toUpperCase()}]...\n> Architecting blueprint...`);
-      } else setTerminalOutput(prev => prev + "\n> Sending follow-up request to AI...");
-      
       try {
-          let baseUrl = settings.awsIp ? (settings.awsIp.startsWith('http') ? settings.awsIp : `http://${settings.awsIp}:3000`) : 'http://localhost:3000';
+          // 🔥 FIXED: Safeguard added for aiModel to prevent silent crashes!
+          const safeAiModel = settings.aiModel || 'groq';
+
+          if (view === 'home') {
+              setGeneratedFiles({}); setActionLogs([{ id: Date.now(), type: 'user', text: prompt }]);
+              setTerminalOutput(`> Initializing Engine [Model: ${safeAiModel.toUpperCase()}]...\n> Architecting blueprint...`);
+          } else {
+              setTerminalOutput(prev => prev + "\n> Sending follow-up request to AI...");
+          }
+          
+          // Use safe awsIp directly if present
+          let baseUrl = 'http://localhost:3000';
+          if (settings.awsIp) {
+              baseUrl = settings.awsIp.startsWith('http') ? settings.awsIp : `http://${settings.awsIp}:3000`;
+          }
+
           const payload = { prompt, image: attachedImage, voice: attachedVoice, voiceUrl: voiceUrl, customSettings: settings };
-          const res = await fetch(`${baseUrl}/api/build`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
-          if (!res.ok) throw new Error(`Backend API returned status ${res.status}`);
+          
+          const res = await fetch(`${baseUrl}/api/build`, { 
+              method: 'POST', 
+              headers: { 'Content-Type': 'application/json' }, 
+              body: JSON.stringify(payload) 
+          });
+          
+          if (!res.ok) throw new Error(`Backend Connection Refused. Ensure ${baseUrl} is online.`);
+          
           const reader = res.body.getReader(); const decoder = new TextDecoder();
           
           while (true) {
@@ -166,8 +187,13 @@ export default function App() {
                   }
               }
           }
-      } catch (error) { setTerminalOutput(prev => prev + `\n> ❌ CONNECTION ERROR: ${error.message}`); } 
-      finally { setIsGenerating(false); setPrompt(''); setAttachedImage(null); setAttachedVoice(null); setVoiceUrl(''); }
+      } catch (error) { 
+          // 🔥 NOW ERRORS WILL BE PROPERLY SHOWN IN CONSOLE
+          setTerminalOutput(prev => prev + `\n> ❌ FRONTEND CRASH/NETWORK ERROR: ${error.message}`); 
+          setActionLogs(prev => [...prev, { id: Date.now(), type: 'log', agent: "System", status: "Error", details: error.message }]);
+      } finally { 
+          setIsGenerating(false); setPrompt(''); setAttachedImage(null); setAttachedVoice(null); setVoiceUrl(''); 
+      }
   };
 
   const handleRunCode = async () => {
@@ -180,29 +206,6 @@ export default function App() {
           if (data.error) setTerminalOutput(prev => prev + `\n> ❌ Sandbox Error:\n${data.error}`);
           if (data.output) setTerminalOutput(prev => prev + `\n> ✅ Output:\n${data.output}`);
       } catch (e) { setTerminalOutput(prev => prev + `\n> ❌ Request Failed: ${e.message}`); }
-  };
-
-  // 🔥 RESTORED BUILD APK LOGIC
-  const handleBuildApk = async () => {
-      setTerminalOutput("> 📦 Initiating Android APK Build on Remote AWS Server...\n> Packaging React Native / Web code...");
-      setIsConsoleOpen(true);
-      try {
-          let baseUrl = settings.awsIp ? (settings.awsIp.startsWith('http') ? settings.awsIp : `http://${settings.awsIp}:3000`) : 'http://localhost:3000';
-          const res = await fetch(`${baseUrl}/api/build-apk`, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ files: generatedFiles })
-          });
-          if(!res.ok) throw new Error("Endpoint not available or server offline");
-          const data = await res.json();
-          if(data.success) {
-              setTerminalOutput(`> 🎉 APK Build Successful!\n> 📥 Download Link: ${data.apkUrl}`);
-          } else {
-              setTerminalOutput(`> ❌ APK Build Error: ${data.error}`);
-          }
-      } catch (e) {
-          setTerminalOutput(`> ❌ APK Build Failed: ${e.message}\n> Note: Ensure your AWS backend has Android Studio/Gradle installed and /api/build-apk is configured.`);
-      }
   };
 
   const handlePublish = async () => { 
@@ -221,6 +224,28 @@ export default function App() {
           if(data.success) { setTerminalOutput(`> 🎉 SUCCESS! LIVE at: ${data.url || awsTargetIp}`); window.open(data.url, "_blank"); } 
           else setTerminalOutput(`> ❌ DEPLOY ERROR: ${data.error}`);
       } catch (e) { setTerminalOutput("> ❌ Failed to connect to Backend Server."); }
+  };
+
+  const handleBuildApk = async () => {
+      setTerminalOutput("> 📦 Initiating Android APK Build on Remote AWS Server...\n> Packaging React Native / Web code...");
+      setIsConsoleOpen(true);
+      try {
+          let baseUrl = settings.awsIp ? (settings.awsIp.startsWith('http') ? settings.awsIp : `http://${settings.awsIp}:3000`) : 'http://localhost:3000';
+          const res = await fetch(`${baseUrl}/api/build-apk`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ files: generatedFiles })
+          });
+          if(!res.ok) throw new Error("Endpoint not available or server offline");
+          const data = await res.json();
+          if(data.success) {
+              setTerminalOutput(`> 🎉 APK Build Successful!\n> 📥 Download Link: ${data.apkUrl}`);
+          } else {
+              setTerminalOutput(`> ❌ APK Build Error: ${data.error}`);
+          }
+      } catch (e) {
+          setTerminalOutput(`> ❌ APK Build Failed: ${e.message}\n> Note: Ensure your AWS backend has Android Studio/Gradle installed.`);
+      }
   };
 
   const bgMain = theme === 'dark' ? 'bg-[#030303] text-white' : 'bg-[#f4f4f5] text-gray-900';
@@ -309,7 +334,7 @@ export default function App() {
         </div>
       )}
 
-      {/* 🌍 PUBLISH APP MODAL (WITH CUSTOM DOMAIN RESTORED) */}
+      {/* 🌍 PUBLISH APP MODAL */}
       {isPublishModalOpen && ( 
            <div className="absolute inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
              <div className={`border rounded-xl w-full max-w-3xl overflow-hidden flex flex-col shadow-2xl ${bgCard}`}>
@@ -323,7 +348,6 @@ export default function App() {
                         <button onClick={() => setPublishMethod('cloud')} className={`p-3 text-left rounded-lg border transition-all ${publishMethod === 'cloud' ? 'bg-blue-600/20 border-blue-500 text-blue-500' : `border-transparent ${textMuted} hover:border-gray-500`}`}><h3 className="font-bold text-sm">☁️ Mantu Cloud</h3><p className="text-[10px] mt-1">Free 1-Click Subdomain</p></button>
                         <button onClick={() => setPublishMethod('aws')} className={`p-3 text-left rounded-lg border transition-all ${publishMethod === 'aws' ? 'bg-amber-500/20 border-amber-500 text-amber-500' : `border-transparent ${textMuted} hover:border-gray-500`}`}><h3 className="font-bold text-sm">🌩️ AWS EC2 Auto</h3><p className="text-[10px] mt-1">Deploy to your own server</p></button>
                         <button onClick={() => setPublishMethod('github')} className={`p-3 text-left rounded-lg border transition-all ${publishMethod === 'github' ? 'bg-gray-500/20 border-gray-500 text-gray-300' : `border-transparent ${textMuted} hover:border-gray-500`}`}><h3 className="font-bold text-sm flex items-center gap-1"><GithubIcon/> GitHub Push</h3><p className="text-[10px] mt-1">Push code to repository</p></button>
-                        {/* 🔥 CUSTOM DOMAIN RESTORED */}
                         <button onClick={() => setPublishMethod('custom')} className={`p-3 text-left rounded-lg border transition-all ${publishMethod === 'custom' ? 'bg-orange-500/20 border-orange-500 text-orange-500' : `border-transparent ${textMuted} hover:border-gray-500`}`}><h3 className="font-bold text-sm">🔗 Custom Domain</h3><p className="text-[10px] mt-1">PRO Feature (₹699)</p></button>
                     </div>
 
@@ -384,7 +408,7 @@ export default function App() {
                   <div className="space-y-4">
                       <div>
                           <label className="text-xs text-purple-500 font-bold block mb-1">Select Active AI Engine</label>
-                          <select value={settings.aiModel} onChange={e => setSettings({...settings, aiModel: e.target.value})} className={`w-full border rounded-md p-2 text-sm font-bold outline-none ${theme==='dark'?'bg-[#1e1e1e] border-[#3b3b3b] text-white':'bg-white border-gray-300 text-black'}`}>
+                          <select value={settings.aiModel || 'groq'} onChange={e => setSettings({...settings, aiModel: e.target.value})} className={`w-full border rounded-md p-2 text-sm font-bold outline-none ${theme==='dark'?'bg-[#1e1e1e] border-[#3b3b3b] text-white':'bg-white border-gray-300 text-black'}`}>
                               <option value="groq">⚡ Groq Llama-3.3 (Fastest)</option>
                               <option value="gemini">🧠 Gemini 1.5 Pro (Multimodal)</option>
                               <option value="openai">🤖 OpenAI GPT-4o (Premium)</option>
@@ -392,9 +416,8 @@ export default function App() {
                       </div>
                       <div>
                           <label className="text-xs text-blue-500 font-bold block mb-1">Backend URL (API Host)</label>
-                          <input type="text" value={settings.awsIp} onChange={e => setSettings({...settings, awsIp: e.target.value})} placeholder="e.g. https://your-backend.onrender.com" className={`w-full border rounded-md p-2 text-sm outline-none ${theme==='dark'?'bg-[#1e1e1e] border-[#3b3b3b] text-white':'bg-white border-gray-300 text-black'}`} />
+                          <input type="text" value={settings.awsIp} onChange={e => setSettings({...settings, awsIp: e.target.value})} placeholder="e.g. https://visora-code.onrender.com" className={`w-full border rounded-md p-2 text-sm outline-none ${theme==='dark'?'bg-[#1e1e1e] border-[#2b2b2b] text-white':'bg-white border-gray-300 text-black'}`} />
                       </div>
-                      <div><label className="text-xs text-orange-500 font-bold block mb-1">Groq API Key</label><input type="password" value={settings.groqKey || ''} onChange={e => setSettings({...settings, groqKey: e.target.value})} className={`w-full border rounded-md p-2 text-sm outline-none ${theme==='dark'?'bg-[#1e1e1e] border-[#3b3b3b] text-white':'bg-white border-gray-300 text-black'}`} /></div>
                       <button onClick={saveSettings} className="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-2.5 rounded-md mt-4 shadow-lg">Save Configuration</button>
                   </div>
               </div>
