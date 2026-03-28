@@ -2,7 +2,8 @@ import React, { useEffect, useRef } from 'react';
 import JSZip from 'jszip'; 
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism';
-import { MonitorIcon, CodeIcon, PlayIcon, CopyIcon, DownloadIcon, TerminalIcon, FileIcon } from './Icons';
+// 🔥 FIX: Added CloseIcon to the imports here!
+import { MonitorIcon, CodeIcon, PlayIcon, CopyIcon, DownloadIcon, TerminalIcon, FileIcon, CloseIcon } from './Icons';
 
 export default function Workspace({
     activeTab, setActiveTab, generatedFiles, activeFile, setActiveFile,
@@ -56,7 +57,7 @@ export default function Workspace({
     return (
         <div className="flex flex-1 w-full h-full overflow-hidden bg-[#0A0A0E]">
             
-            {/* ⚡ LEFT SIDEBAR: ACTION TIMELINE & LIVE CHAT (From Screenshot 46722.jpg) */}
+            {/* ⚡ LEFT SIDEBAR: ACTION TIMELINE & LIVE CHAT */}
             <div className="w-72 md:w-80 border-r border-[#2b2b2b] flex flex-col flex-shrink-0 bg-[#0A0A0E] h-full shadow-[5px_0_15px_rgba(0,0,0,0.2)] z-10">
                 
                 {/* Header */}
