@@ -2,7 +2,6 @@ import React, { useEffect, useRef } from 'react';
 import JSZip from 'jszip'; 
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism';
-// 🔥 FIX: Added CloseIcon to the imports here!
 import { MonitorIcon, CodeIcon, PlayIcon, CopyIcon, DownloadIcon, TerminalIcon, FileIcon, CloseIcon } from './Icons';
 
 export default function Workspace({
@@ -10,13 +9,12 @@ export default function Workspace({
     previewHtml, terminalOutput, setTerminalOutput, isConsoleOpen, setIsConsoleOpen, 
     handleRunCode, setIsPublishModalOpen, setIsEnvModalOpen,
     
-    // 🔥 New Props for Left Sidebar Chat & Timeline
+    // 🔥 New Props
     actionLogs, prompt, setPrompt, handleGenerate, isGenerating, toggleListening, isListening
 }) {
 
     const logsEndRef = useRef(null);
     
-    // Auto-scroll timeline to bottom
     useEffect(() => {
         logsEndRef.current?.scrollIntoView({ behavior: "smooth" });
     }, [actionLogs]);
@@ -80,13 +78,11 @@ export default function Workspace({
                             <div className="absolute -left-[4.5px] top-1.5 w-2 h-2 rounded-full bg-blue-500 shadow-[0_0_8px_rgba(59,130,246,0.8)]"></div>
                             
                             {log.type === 'user' ? (
-                                // User Prompts (Chat style)
                                 <div className="bg-[#1e1e1e] border border-[#2b2b2b] rounded-lg p-3 mt-1 shadow-sm">
                                     <span className="text-xs text-blue-400 font-bold mb-1 block">👤 User Prompt</span>
                                     <span className="text-sm font-medium text-white break-words">{log.text}</span>
                                 </div>
                             ) : (
-                                // System/AI Logs (Screenshot style)
                                 <div className="flex flex-col gap-0.5 mt-0.5">
                                     <span className="text-[10px] text-gray-500 uppercase tracking-wider">{log.agent}</span>
                                     <span className={`text-xs font-bold ${log.status === 'Success' ? 'text-green-400' : log.status === 'Error' ? 'text-red-400' : 'text-blue-400'}`}>{log.status || 'Processing'}</span>
@@ -104,8 +100,8 @@ export default function Workspace({
                     <div ref={logsEndRef} />
                 </div>
 
-                {/* 💬 LIVE CHAT / FOLLOW UP PROMPT BOX */}
-                <div className="p-3 border-t border-[#2b2b2b] bg-[#111116] shrink-0">
+                {/* 🔥 FIX: Added 'mt-auto' to push the chat box to the absolute bottom */}
+                <div className="p-3 border-t border-[#2b2b2b] bg-[#111116] shrink-0 mt-auto">
                     <div className={`bg-[#1e1e1e] border ${isListening ? 'border-red-500 shadow-[0_0_10px_rgba(239,68,68,0.2)]' : 'border-[#3b3b3b] focus-within:border-blue-500'} rounded-lg p-2 transition-colors flex flex-col`}>
                         <textarea 
                             value={prompt} 
@@ -131,13 +127,11 @@ export default function Workspace({
                 
                 {/* 🔝 TOP TOOLBAR */}
                 <div className="h-12 border-b border-[#2b2b2b] flex items-center justify-between px-3 bg-[#111116] shrink-0 overflow-x-auto">
-                    {/* View Toggles */}
                     <div className="flex items-center bg-[#1e1e1e] rounded border border-[#2b2b2b] p-0.5 shrink-0">
                         <button onClick={() => setActiveTab('preview')} className={`flex items-center gap-1.5 px-3 py-1 rounded-sm text-[10px] font-bold transition-all ${activeTab === 'preview' ? 'bg-[#2b2b2b] text-white shadow' : 'text-gray-400 hover:text-white'}`}><MonitorIcon className="w-3 h-3"/> Live Preview</button>
                         <button onClick={() => setActiveTab('code')} className={`flex items-center gap-1.5 px-3 py-1 rounded-sm text-[10px] font-bold transition-all ${activeTab === 'code' ? 'bg-[#2b2b2b] text-white shadow' : 'text-gray-400 hover:text-white'}`}><CodeIcon className="w-3 h-3"/> View Code</button>
                     </div>
 
-                    {/* Action Buttons */}
                     <div className="flex items-center gap-2 shrink-0">
                         <button onClick={() => setIsConsoleOpen(!isConsoleOpen)} className={`flex items-center gap-1 px-3 py-1.5 rounded text-[10px] font-bold border transition-all ${isConsoleOpen ? 'bg-[#2b2b2b] text-white border-transparent' : 'bg-transparent text-gray-400 border-[#2b2b2b] hover:text-white'}`}>_ Console</button>
                         <button onClick={() => setIsEnvModalOpen(true)} className="bg-[#1e1e1e] text-gray-300 border border-[#2b2b2b] px-3 py-1.5 rounded text-[10px] font-bold hover:bg-[#2b2b2b] hover:text-white transition">🔐 Keys</button>
@@ -148,7 +142,7 @@ export default function Workspace({
                     </div>
                 </div>
 
-                {/* 📁 FILE TABS (Only in Code View) */}
+                {/* 📁 FILE TABS */}
                 {activeTab === 'code' && Object.keys(generatedFiles).length > 0 && (
                     <div className="flex bg-[#0A0A0E] border-b border-[#2b2b2b] overflow-x-auto shrink-0 scrollbar-hide h-9 items-end">
                         {Object.keys(generatedFiles).map(file => (

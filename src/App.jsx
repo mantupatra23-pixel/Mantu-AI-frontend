@@ -14,7 +14,7 @@ export default function App() {
   const [terminalOutput, setTerminalOutput] = useState("> System Ready. Welcome to Mantu OS.");
   const [isConsoleOpen, setIsConsoleOpen] = useState(false);
 
-  // ⚡ ACTION TIMELINE STATE (For Screenshot UI)
+  // ⚡ ACTION TIMELINE STATE
   const [actionLogs, setActionLogs] = useState([]);
 
   // 🎤 Live Voice Typing State
@@ -105,21 +105,34 @@ export default function App() {
       if (!prompt.trim()) return;
       if (isListening) toggleListening(); 
       
-      // Push User Message to Action Timeline
       setActionLogs(prev => [...prev, { id: Date.now(), type: 'user', text: prompt }]);
       
       setIsGenerating(true);
       setView('editor');
       setIsConsoleOpen(true);
       
-      // Only clear files if it's a completely new project from home screen
-      if (view === 'home') setGeneratedFiles({});
+      // 🔥 FIX 1: Restore the initializing logs so you know it started
+      if (view === 'home') {
+          setGeneratedFiles({});
+          setActionLogs([{ id: Date.now(), type: 'user', text: prompt }]); // Reset timeline
+          setTerminalOutput("> Initializing Mantu AI Engine...\n> Architecting project blueprint...");
+      } else {
+          setTerminalOutput(prev => prev + "\n> Sending follow-up request to AI...");
+      }
       
       try {
-          const baseUrl = settings.awsIp ? `http://${settings.awsIp}:3000` : 'http://localhost:3000';
+          // 🔥 FIX 2: Better URL handling for Render HTTPS backends
+          let baseUrl = 'http://localhost:3000';
+          if (settings.awsIp) {
+              baseUrl = settings.awsIp.startsWith('http') ? settings.awsIp : `http://${settings.awsIp}:3000`;
+          }
+
           const payload = { prompt, image: attachedImage, voice: attachedVoice, voiceUrl: voiceUrl, customSettings: { groqKey: settings.groqKey, awsIp: settings.awsIp } };
 
           const res = await fetch(`${baseUrl}/api/build`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+          
+          if (!res.ok) throw new Error(`Backend returned status ${res.status}`);
+
           const reader = res.body.getReader(); const decoder = new TextDecoder();
           
           while (true) {
@@ -144,7 +157,10 @@ export default function App() {
                   }
               }
           }
-      } catch (error) { setTerminalOutput(prev => prev + `\n> ❌ CONNECTION ERROR: ${error.message}`); } 
+      } catch (error) { 
+          // 🔥 Will now properly show network/CORS errors in console
+          setTerminalOutput(prev => prev + `\n> ❌ CONNECTION ERROR: ${error.message}\n> Tip: Make sure your Backend URL in Settings is correct (e.g., https://your-backend.onrender.com)`); 
+      } 
       finally { setIsGenerating(false); setPrompt(''); setAttachedImage(null); setAttachedVoice(null); setVoiceUrl(''); }
   };
 
@@ -153,7 +169,7 @@ export default function App() {
       setTerminalOutput(`> Running ${activeFile} in Mantu Sandbox...`);
       setIsConsoleOpen(true);
       try {
-          const baseUrl = settings.awsIp ? `http://${settings.awsIp}:3000` : 'http://localhost:3000';
+          let baseUrl = settings.awsIp ? (settings.awsIp.startsWith('http') ? settings.awsIp : `http://${settings.awsIp}:3000`) : 'http://localhost:3000';
           const res = await fetch(`${baseUrl}/api/run`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ filename: activeFile, code: generatedFiles[activeFile] }) });
           const data = await res.json();
           if (data.error) setTerminalOutput(prev => prev + `\n> ❌ Sandbox Error:\n${data.error}`);
@@ -161,15 +177,18 @@ export default function App() {
       } catch (e) { setTerminalOutput(prev => prev + `\n> ❌ Request Failed: ${e.message}`); }
   };
 
-  const handlePublish = async () => { /* Publish logic remains 100% same and safe */
+  const handlePublish = async () => { 
       setIsPublishModalOpen(false); setIsConsoleOpen(true);
       if (publishMethod === 'custom') return setTerminalOutput("> ERROR: PRO feature pending payment.");
-      const baseUrl = settings.awsIp ? `http://${settings.awsIp}:3000` : 'http://localhost:3000';
+      
+      let baseUrl = settings.awsIp ? (settings.awsIp.startsWith('http') ? settings.awsIp : `http://${settings.awsIp}:3000`) : 'http://localhost:3000';
       const apiUrl = `${baseUrl}/api/publish-${publishMethod}`;
+      
       let payload = { files: generatedFiles };
       if (publishMethod === 'cloud') payload.netlifyToken = settings.netlifyToken;
       if (publishMethod === 'github') { payload.repoName = gitRepoName; payload.token = gitToken; }
       if (publishMethod === 'aws') { payload.instanceType = awsInstance; payload.targetIp = awsTargetIp; payload.authKey = awsAuthKey; }
+      
       setTerminalOutput(`> 🚀 Initiating Deployment via ${publishMethod.toUpperCase()}...`);
       try {
           const res = await fetch(apiUrl, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
@@ -194,7 +213,7 @@ export default function App() {
         </div>
       </nav>
 
-      {/* 🏠 HOME VIEW (Prompt Box Moved UP and Made TALLER) */}
+      {/* 🏠 HOME VIEW */}
       {view === 'home' ? (
         <div className="flex-1 flex flex-col items-center pt-24 md:pt-32 p-4 relative">
             <h1 className="text-4xl md:text-6xl font-extrabold mb-6 text-center tracking-tight">
@@ -204,7 +223,7 @@ export default function App() {
                 Describe your dream SaaS, App, or Dashboard. Mantu AI will write the code, bundle the project, and deploy it to a live global URL instantly.
             </p>
             
-            {/* 🔥 BIGGER PROMPT BOX 🔥 */}
+            {/* BIG PROMPT BOX */}
             <div className={`w-full max-w-4xl bg-[#111116] border ${isListening ? 'border-red-500 shadow-[0_0_40px_rgba(239,68,68,0.2)]' : 'border-[#2b2b2b] shadow-[0_0_40px_rgba(37,99,235,0.1)]'} rounded-2xl flex flex-col focus-within:border-blue-500/50 transition-all z-10`}>
                 {(attachedImage || attachedVoice || showUrlInput) && (
                     <div className="flex items-center gap-3 p-3 border-b border-[#2b2b2b] bg-[#0A0A0E] rounded-t-2xl overflow-x-auto">
@@ -214,7 +233,6 @@ export default function App() {
                     </div>
                 )}
                 <div className="flex flex-col p-2 relative">
-                    {/* Make textarea much taller: min-h-[120px] */}
                     <textarea 
                         value={prompt} onChange={(e) => setPrompt(e.target.value)} 
                         placeholder={isListening ? "Listening... Speak now!" : "e.g. Build an AI video generator SaaS with a dark theme..."}
@@ -240,7 +258,7 @@ export default function App() {
             <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[700px] h-[700px] bg-blue-600/5 blur-[150px] rounded-full pointer-events-none"></div>
         </div>
       ) : (
-        /* 💻 WORKSPACE VIEW (With Timeline Passed as Props) */
+        /* 💻 WORKSPACE VIEW */
         <div className="flex flex-1 overflow-hidden flex-row w-full">
           <Workspace 
               activeTab={activeTab} setActiveTab={setActiveTab}
@@ -249,7 +267,6 @@ export default function App() {
               isConsoleOpen={isConsoleOpen} setIsConsoleOpen={setIsConsoleOpen}
               handleRunCode={handleRunCode} setIsPublishModalOpen={setIsPublishModalOpen} setIsEnvModalOpen={setIsEnvModalOpen} 
               
-              // ⚡ Passing New Features to Workspace
               actionLogs={actionLogs}
               prompt={prompt}
               setPrompt={setPrompt}
@@ -261,8 +278,8 @@ export default function App() {
         </div>
       )}
 
-      {/* 🌍 ALL MODALS REMAIN EXACTLY THE SAME - NO FEATURES LOST */}
-      {isPublishModalOpen && ( /* Publish Modal Kept 100% Intact */
+      {/* 🌍 MODALS */}
+      {isPublishModalOpen && ( 
            <div className="absolute inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
              <div className="bg-[#111116] border border-[#3b3b3b] rounded-xl w-full max-w-3xl overflow-hidden flex flex-col shadow-2xl">
                 <div className="flex justify-between items-center p-5 border-b border-[#2b2b2b] bg-[#0A0A0E]"><h2 className="text-xl font-bold text-white flex items-center gap-2">🌍 Publish Your App</h2><button onClick={() => setIsPublishModalOpen(false)} className="text-gray-400 hover:text-red-400 transition"><CloseIcon/></button></div>
@@ -296,7 +313,8 @@ export default function App() {
            </div>
         )}
       {isEnvModalOpen && ( <div className="absolute inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4"><div className="bg-[#111116] border border-[#3b3b3b] rounded-xl w-full max-w-md p-5"><div className="flex justify-between items-center mb-4"><h2 className="text-lg font-bold text-white">🔐 Env Variables</h2><button onClick={() => setIsEnvModalOpen(false)} className="text-gray-400"><CloseIcon/></button></div><div className="space-y-3 max-h-[60vh] overflow-y-auto">{projectEnv.map((env, index) => (<div key={index} className="flex gap-2"><input type="text" placeholder="KEY" value={env.key} onChange={(e) => { const newEnv = [...projectEnv]; newEnv[index].key = e.target.value; setProjectEnv(newEnv); }} className="w-1/3 bg-[#1e1e1e] border border-[#2b2b2b] rounded p-2 text-xs text-white outline-none" /><input type="password" placeholder="VALUE" value={env.value} onChange={(e) => { const newEnv = [...projectEnv]; newEnv[index].value = e.target.value; setProjectEnv(newEnv); }} className="flex-1 bg-[#1e1e1e] border border-[#2b2b2b] rounded p-2 text-xs text-white outline-none" /><button onClick={() => { const newEnv = projectEnv.filter((_, i) => i !== index); setProjectEnv(newEnv.length ? newEnv : [{key:'', value:''}]); }} className="text-red-400 p-2 text-xs font-bold">X</button></div>))}</div><button onClick={() => setProjectEnv([...projectEnv, { key: '', value: '' }])} className="text-xs text-blue-400 font-bold w-full text-left py-2">+ Add Variable</button><button onClick={() => setIsEnvModalOpen(false)} className="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-2 rounded-md mt-4">Save Keys</button></div></div> )}
-      {isSettingsOpen && ( <div className="absolute inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4"><div className="bg-[#111116] border border-[#3b3b3b] rounded-xl w-full max-w-md p-5"><div className="flex justify-between items-center mb-4"><h2 className="text-lg font-bold text-white">⚙️ Core Settings</h2><button onClick={() => setIsSettingsOpen(false)} className="text-gray-400"><CloseIcon/></button></div><div className="space-y-4"><div><label className="text-xs text-blue-400 font-bold block mb-1">Backend Master IP (Port 3000)</label><input type="text" value={settings.awsIp} onChange={e => setSettings({...settings, awsIp: e.target.value})} className="w-full bg-[#1e1e1e] border border-blue-500/50 rounded-md p-2 text-sm text-white outline-none" /></div><div><label className="text-xs text-green-400 font-bold block mb-1">Netlify Default Token</label><input type="password" value={settings.netlifyToken} onChange={e => setSettings({...settings, netlifyToken: e.target.value})} className="w-full bg-[#1e1e1e] border border-green-500/50 rounded-md p-2 text-sm text-white outline-none" /></div><div><label className="text-xs text-orange-400 font-bold block mb-1">Groq API Key</label><input type="password" value={settings.groqKey || ''} onChange={e => setSettings({...settings, groqKey: e.target.value})} className="w-full bg-[#1e1e1e] border border-orange-500/50 rounded-md p-2 text-sm text-white outline-none" /></div><button onClick={saveSettings} className="w-full bg-white hover:bg-gray-200 text-black font-bold py-2.5 rounded-md mt-4">Save Configuration</button></div></div></div> )}
+      
+      {isSettingsOpen && ( <div className="absolute inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4"><div className="bg-[#111116] border border-[#3b3b3b] rounded-xl w-full max-w-md p-5"><div className="flex justify-between items-center mb-4"><h2 className="text-lg font-bold text-white">⚙️ Core Settings</h2><button onClick={() => setIsSettingsOpen(false)} className="text-gray-400"><CloseIcon/></button></div><div className="space-y-4"><div><label className="text-xs text-blue-400 font-bold block mb-1">Backend URL (API Host)</label><input type="text" value={settings.awsIp} onChange={e => setSettings({...settings, awsIp: e.target.value})} placeholder="e.g. https://my-backend.onrender.com" className="w-full bg-[#1e1e1e] border border-blue-500/50 rounded-md p-2 text-sm text-white outline-none" /><p className="text-[10px] text-gray-500 mt-1">If your backend is on Render, paste the full HTTPS URL here.</p></div><div><label className="text-xs text-green-400 font-bold block mb-1">Netlify Default Token</label><input type="password" value={settings.netlifyToken} onChange={e => setSettings({...settings, netlifyToken: e.target.value})} className="w-full bg-[#1e1e1e] border border-green-500/50 rounded-md p-2 text-sm text-white outline-none" /></div><div><label className="text-xs text-orange-400 font-bold block mb-1">Groq API Key</label><input type="password" value={settings.groqKey || ''} onChange={e => setSettings({...settings, groqKey: e.target.value})} className="w-full bg-[#1e1e1e] border border-orange-500/50 rounded-md p-2 text-sm text-white outline-none" /></div><button onClick={saveSettings} className="w-full bg-white hover:bg-gray-200 text-black font-bold py-2.5 rounded-md mt-4">Save Configuration</button></div></div></div> )}
     </div>
   );
 }
