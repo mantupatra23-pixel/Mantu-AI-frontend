@@ -1,8 +1,19 @@
 import React, { useState, useEffect, useRef } from 'react';
 
 // ==========================================
-// 🎨 ALL ICONS
+// 🎨 ALL ICONS & NEW LOGO
 // ==========================================
+const MantuLogo = () => (
+  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="url(#blue-grad)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+    <defs>
+      <linearGradient id="blue-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+        <stop offset="0%" stopColor="#3b82f6" />
+        <stop offset="100%" stopColor="#8b5cf6" />
+      </linearGradient>
+    </defs>
+    <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
+  </svg>
+);
 const SparkleIcon = () => <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="m12 3-1.9 5.8a2 2 0 0 1-1.3 1.3L3 12l5.8 1.9a2 2 0 0 1 1.3 1.3L12 21l1.9-5.8a2 2 0 0 1 1.3-1.3L21 12l-5.8-1.9a2 2 0 0 1-1.3-1.3L12 3Z"/></svg>;
 const MicIcon = () => <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="22"/></svg>;
 const ImageIcon = () => <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>;
@@ -20,10 +31,29 @@ const SettingsIcon = () => <svg width="18" height="18" viewBox="0 0 24 24" fill=
 const SendIcon = () => <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>;
 
 // ==========================================
+// 🚀 CSS FOR HACKER TICKER & CUSTOM SCROLL
+// ==========================================
+const globalStyles = `
+@keyframes marquee {
+    0% { transform: translateX(100vw); }
+    100% { transform: translateX(-100%); }
+}
+.animate-marquee {
+    animation: marquee 30s linear infinite;
+    display: inline-block;
+    padding-left: 100%;
+}
+.custom-scrollbar::-webkit-scrollbar { width: 6px; height: 6px; }
+.custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+.custom-scrollbar::-webkit-scrollbar-thumb { background: #2b2b36; border-radius: 4px; }
+.custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #3b3b46; }
+`;
+
+// ==========================================
 // 🚀 MAIN APP COMPONENT
 // ==========================================
 export default function App() {
-  const BACKEND_URL = "https://visora-code.onrender.com"; // Your Live Mantu OS Backend
+  const BACKEND_URL = "https://visora-code.onrender.com"; 
 
   // 🧠 Core States
   const [projects, setProjects] = useState([]);
@@ -38,11 +68,10 @@ export default function App() {
   const [terminalOutput, setTerminalOutput] = useState("> System Ready. Welcome to Mantu OS.");
   const [isConsoleOpen, setIsConsoleOpen] = useState(false);
   
-  // 🎤 UI & Listeners
+  // 🎤 UI Modals & Listeners
   const [isListening, setIsListening] = useState(false);
   const recognitionRef = useRef(null);
 
-  // 🌍 Publish Modal States
   const [isPublishModalOpen, setIsPublishModalOpen] = useState(false);
   const [publishMethod, setPublishMethod] = useState('aws'); 
   const [awsInstanceType, setAwsInstanceType] = useState('cpu'); 
@@ -55,7 +84,6 @@ export default function App() {
   const [isEnvModalOpen, setIsEnvModalOpen] = useState(false);
   const [projectEnv, setProjectEnv] = useState([{ key: '', value: '' }]);
 
-  // Code Editor Refs (For VS Code Sync Scroll)
   const codeTextareaRef = useRef(null);
   const lineNumbersRef = useRef(null);
 
@@ -68,14 +96,10 @@ export default function App() {
   }, []);
 
   // ==========================================
-  // 💾 1. SAVE PROJECT LOGIC (FIXED)
+  // 💾 PROJECT MANAGEMENT
   // ==========================================
   const saveCurrentProject = () => {
-      if (Object.keys(generatedFiles).length === 0) {
-          setTerminalOutput(prev => prev + `\n> ⚠️ Error: No code generated to save yet.`);
-          setIsConsoleOpen(true);
-          return;
-      }
+      if (Object.keys(generatedFiles).length === 0) return alert("No code generated yet!");
       const newProject = {
           id: Date.now(),
           title: prompt.substring(0, 30) || 'Untitled App',
@@ -89,8 +113,17 @@ export default function App() {
       setIsConsoleOpen(true);
   };
 
+  const loadProject = (proj) => {
+      setGeneratedFiles(proj.files); 
+      setActionLogs(proj.logs || []); 
+      setPrompt(proj.title);
+      setActiveFile(Object.keys(proj.files)[0] || "");
+      setView('editor'); 
+      setTerminalOutput(`> 📂 Loaded Project: ${proj.title}`);
+  };
+
   // ==========================================
-  // 🎤 2. VOICE LISTENER
+  // 🎤 VOICE LISTENER
   // ==========================================
   const toggleListening = (targetInput) => {
       if (isListening) { recognitionRef.current?.stop(); setIsListening(false); return; }
@@ -98,7 +131,6 @@ export default function App() {
       if (!SpeechRecognition) return alert("Browser does not support Voice Typing.");
       const recognition = new SpeechRecognition();
       recognition.continuous = true; recognition.interimResults = true;
-      
       let initialPrompt = targetInput === 'followUp' ? followUpPrompt : prompt;
       recognition.onresult = (e) => {
           let currentTranscript = '';
@@ -119,7 +151,7 @@ export default function App() {
   };
 
   // ==========================================
-  // 🚀 3. CRASH-PROOF BUILD ENGINE
+  // 🚀 CRASH-PROOF BUILD ENGINE
   // ==========================================
   const triggerBuild = async (text, isFollowUp = false) => {
       if (!text.trim()) return;
@@ -137,7 +169,7 @@ export default function App() {
       }
       
       setActionLogs(newLogs);
-      if(isFollowUp) setFollowUpPrompt(''); else setPrompt('');
+      if(isFollowUp) setFollowUpPrompt('');
       
       try {
           const res = await fetch(`${BACKEND_URL}/api/build`, { 
@@ -145,7 +177,7 @@ export default function App() {
               body: JSON.stringify({ prompt: text, existingFiles: isFollowUp ? generatedFiles : {} }) 
           });
           
-          if (!res.ok) throw new Error(`Backend Connection Refused. Server might be sleeping.`);
+          if (!res.ok) throw new Error(`Backend Connection Refused.`);
           
           const reader = res.body.getReader(); const decoder = new TextDecoder();
           let buffer = ""; 
@@ -188,9 +220,6 @@ export default function App() {
       } finally { setIsGenerating(false); }
   };
 
-  // ==========================================
-  // 💻 4. LIVE PREVIEW COMPILER
-  // ==========================================
   const renderLivePreview = () => {
       let htmlFile = generatedFiles['index.html'] || generatedFiles['public/index.html'] || `<div id="root" class="flex items-center justify-center h-screen font-sans bg-[#030303] text-gray-400">Building UI...</div>`;
       let cssFile = generatedFiles['styles.css'] || generatedFiles['index.css'] || "";
@@ -202,71 +231,107 @@ export default function App() {
       return `<!DOCTYPE html><html><head>${reactImports}</head><body>${htmlFile}${executeReact}</body></html>`;
   };
 
-  const handlePublish = async () => {
-      setIsPublishModalOpen(false); setIsConsoleOpen(true);
-      setTerminalOutput(`> 🚀 Initiating Deployment via ${publishMethod.toUpperCase()}...`);
-      setTimeout(() => setTerminalOutput(prev => prev + `\n> ✅ Deployment logic triggered successfully.`), 1000);
-  };
-
-  // ==========================================
-  // 🎨 5. VS CODE EDITOR RENDER HELPERS
-  // ==========================================
+  // VS Code Helpers
   const activeCode = generatedFiles[activeFile] || '';
   const lineCount = activeCode.split('\n').length;
   const lines = Array.from({length: Math.max(lineCount, 1)}, (_, i) => i + 1);
-
-  const handleCodeScroll = (e) => {
-      if (lineNumbersRef.current) lineNumbersRef.current.scrollTop = e.target.scrollTop;
-  };
+  const handleCodeScroll = (e) => { if (lineNumbersRef.current) lineNumbersRef.current.scrollTop = e.target.scrollTop; };
 
   // ==========================================
   // 🌍 FULL APP RENDER
   // ==========================================
   return (
     <div className="h-[100dvh] w-full flex flex-col font-sans overflow-hidden bg-[#050505] text-white">
+      <style dangerouslySetInnerHTML={{__html: globalStyles}} />
       
+      {/* 🚀 LIVE HACKER TICKER (NEW) */}
+      <div className="w-full bg-blue-900/20 border-b border-blue-900/50 text-blue-400 text-[10px] font-mono py-1.5 flex overflow-hidden whitespace-nowrap shrink-0 z-30">
+           <div className="animate-marquee inline-block">
+               🚀 User_92 deployed Neovid SaaS in 12s... &nbsp; | &nbsp; ⚡ Mantu Cloud processing 1.2M requests... &nbsp; | &nbsp; 🧠 Llama-3 Enterprise Engine Active... &nbsp; | &nbsp; 🌍 Connected to AWS us-east-1...
+           </div>
+      </div>
+
       {/* 🔝 NAVBAR */}
-      <nav className="h-14 flex items-center justify-between px-6 border-b border-[#1f1f23] bg-[#0a0a0c] shrink-0 z-20">
+      <nav className="h-14 flex items-center justify-between px-6 border-b border-[#1f1f23] bg-[#0a0a0c]/80 backdrop-blur-md shrink-0 z-20">
         <div className="text-xl font-extrabold flex items-center gap-2 cursor-pointer" onClick={() => setView('home')}>
-            <span className="text-blue-600 font-mono tracking-tighter">#</span> mantu_ai
+            <MantuLogo/> <span className="tracking-tight">mantu_ai</span>
         </div>
         <div className="flex items-center gap-4 text-sm font-medium text-gray-400">
-           <button className="hover:text-white transition flex items-center gap-2">☀️</button>
            <button className="hover:text-white transition flex items-center gap-2"><SparkleIcon/> History</button>
            <button className="hover:text-white transition"><SettingsIcon/></button>
            {view === 'home' && Object.keys(generatedFiles).length > 0 && (
-               <button onClick={() => setView('editor')} className="text-xs font-bold text-white bg-blue-600 px-4 py-1.5 rounded-full hover:bg-blue-500 shadow-lg">Resume →</button>
+               <button onClick={() => setView('editor')} className="text-xs font-bold text-white bg-blue-600 px-4 py-1.5 rounded-full hover:bg-blue-500 shadow-[0_0_15px_rgba(37,99,235,0.4)]">Resume Editor →</button>
            )}
         </div>
       </nav>
 
-      {/* 🏠 HOME VIEW */}
+      {/* 🏠 HOME VIEW WITH SCI-FI ELEMENTS */}
       {view === 'home' ? (
-        <div className="flex-1 flex flex-col items-center pt-24 p-4 overflow-y-auto">
-            <h1 className="text-5xl md:text-6xl font-extrabold mb-6 text-center tracking-tight">
-                Build & Deploy in <span className="text-blue-600">Seconds</span>
+        <div className="flex-1 flex flex-col items-center pt-16 p-4 overflow-y-auto relative z-10 custom-scrollbar">
+            
+            {/* 🌌 ANIMATED GLOWING GRID BACKGROUND (NEW) */}
+            <div className="absolute inset-0 pointer-events-none z-[-1] overflow-hidden">
+                <div className="absolute inset-0 bg-[linear-gradient(to_right,#1f1f23_1px,transparent_1px),linear-gradient(to_bottom,#1f1f23_1px,transparent_1px)] bg-[size:4rem_4rem] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_100%)] opacity-30"></div>
+                <div className="absolute top-[10%] left-[20%] w-[30%] h-[30%] bg-blue-600/20 blur-[120px] rounded-full animate-pulse"></div>
+                <div className="absolute bottom-[20%] right-[20%] w-[30%] h-[30%] bg-purple-600/20 blur-[120px] rounded-full animate-pulse" style={{animationDelay: '2s'}}></div>
+            </div>
+
+            <h1 className="text-5xl md:text-6xl font-extrabold mb-4 text-center tracking-tight">
+                Build & Deploy in <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-500">Seconds</span>
             </h1>
-            <p className="text-gray-400 mb-12 max-w-xl text-center text-sm md:text-base leading-relaxed">
+            <p className="text-gray-400 mb-10 max-w-xl text-center text-sm md:text-base leading-relaxed">
                 Describe your dream SaaS, App, or Dashboard. Mantu AI will write the code, bundle the project, and deploy it to a live global URL instantly.
             </p>
             
-            <div className="w-full max-w-3xl border border-[#1f1f23] bg-[#0d0d12] rounded-2xl flex flex-col shadow-2xl transition-all focus-within:border-blue-500/50">
+            {/* ⚡ NEON PULSE INPUT BOX (NEW) */}
+            <div className="w-full max-w-3xl bg-[#0d0d12]/80 backdrop-blur-xl border border-[#2b2b36] rounded-2xl flex flex-col shadow-2xl transition-all duration-300 focus-within:border-blue-500 focus-within:shadow-[0_0_30px_rgba(59,130,246,0.2)]">
                 <textarea 
                     value={prompt} onChange={(e) => setPrompt(e.target.value)} 
                     placeholder="e.g. Build an AI video generator SaaS dashboard..."
-                    className="w-full bg-transparent border-none outline-none p-5 resize-none min-h-[140px] text-lg text-white placeholder-gray-600"
+                    className="w-full bg-transparent border-none outline-none p-5 resize-none min-h-[120px] text-lg text-white placeholder-gray-600"
                     onKeyDown={(e) => { if(e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); triggerBuild(prompt, false); } }}
                 />
-                <div className="flex items-center justify-between p-3">
+                <div className="flex items-center justify-between p-3 border-t border-[#1f1f23]">
                     <div className="flex gap-3 px-2 text-gray-500">
                         <button onClick={() => toggleListening('new')} className={`hover:text-white transition ${isListening ? 'text-red-500 animate-pulse' : ''}`}><MicIcon/></button>
                         <button className="hover:text-white transition"><ImageIcon/></button>
                     </div>
-                    <button onClick={() => triggerBuild(prompt, false)} disabled={isGenerating} className="bg-[#1a40af] hover:bg-blue-600 text-blue-100 px-6 py-2 rounded-xl font-bold flex items-center gap-2 transition disabled:opacity-50 text-sm">
+                    <button onClick={() => triggerBuild(prompt, false)} disabled={isGenerating} className="bg-blue-600 hover:bg-blue-500 text-white px-6 py-2 rounded-xl font-bold flex items-center gap-2 transition disabled:opacity-50 shadow-lg">
                         {isGenerating ? <span className="animate-spin">🌀</span> : <SparkleIcon/>} {isGenerating ? 'Building...' : 'Generate'}
                     </button>
                 </div>
             </div>
+
+            {/* 🧩 GLASSMORPHISM TEMPLATE CARDS (NEW) */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-12 w-full max-w-3xl z-10">
+                {[
+                    {icon: '📈', title: 'Crypto Dashboard', desc: 'Real-time charts & wallet UI'},
+                    {icon: '🛒', title: 'E-Commerce Store', desc: 'Product grid & cart system'},
+                    {icon: '🎬', title: 'Video SaaS App', desc: 'Video generator UI like Sora'}
+                ].map((card, i) => (
+                    <div key={i} onClick={() => setPrompt(`Build a ${card.title} with ${card.desc.toLowerCase()}`)} 
+                         className="bg-white/5 backdrop-blur-md border border-white/10 p-4 rounded-xl cursor-pointer hover:-translate-y-1 hover:bg-white/10 hover:border-blue-500/50 transition-all duration-300">
+                        <div className="text-xl mb-2">{card.icon}</div>
+                        <div className="font-bold text-sm text-white">{card.title}</div>
+                        <div className="text-[10px] text-gray-400 mt-1">{card.desc}</div>
+                    </div>
+                ))}
+            </div>
+
+            {/* 📂 QUICK RESUME (RECENT PROJECT) (NEW) */}
+            {projects.length > 0 && (
+                <div className="mt-12 mb-10 z-10 flex flex-col items-center w-full max-w-xl">
+                    <div className="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-3 flex items-center gap-2"><CodeIcon/> Continue Working</div>
+                    <button onClick={() => loadProject(projects[0])} className="flex items-center gap-4 bg-[#0d0d12]/80 backdrop-blur-md border border-[#1f1f23] hover:border-blue-500/50 p-4 rounded-xl transition-all duration-300 w-full text-left group">
+                        <div className="bg-blue-500/20 text-blue-500 p-3 rounded-lg group-hover:scale-110 transition"><CodeIcon/></div>
+                        <div className="flex-1 overflow-hidden">
+                            <div className="text-sm font-bold text-white truncate">{projects[0].title}</div>
+                            <div className="text-xs text-gray-500 mt-1">{Object.keys(projects[0].files).length} files generated</div>
+                        </div>
+                        <div className="text-gray-500 group-hover:text-white transition">Resume →</div>
+                    </button>
+                </div>
+            )}
         </div>
       ) : (
         /* 💻 EDITOR VIEW */
@@ -278,9 +343,7 @@ export default function App() {
                     <button onClick={()=>setActiveTab('code')} className={`px-4 py-1 text-xs font-bold rounded flex items-center gap-2 ${activeTab === 'code' ? 'bg-[#2b2b36] text-white shadow' : 'text-gray-400 hover:text-white transition'}`}><CodeIcon/> View Code</button>
                 </div>
                 <div className="flex gap-2 shrink-0">
-                    {/* 🔥 SAVE PROJECT BUTTON 🔥 */}
                     <button onClick={saveCurrentProject} className="px-3 py-1.5 text-xs font-bold bg-[#1a1a24] text-blue-400 border border-blue-900/50 hover:bg-blue-900/20 rounded flex items-center gap-2 transition"><SparkleIcon/> Save Project</button>
-                    
                     <button onClick={() => setIsConsoleOpen(!isConsoleOpen)} className="px-3 py-1.5 text-xs font-bold bg-[#1a1a24] text-gray-300 hover:bg-[#2b2b36] rounded flex items-center gap-2 transition"><TerminalIcon/> _Console</button>
                     <button onClick={() => setIsEnvModalOpen(true)} className="px-3 py-1.5 text-xs font-bold bg-yellow-500/10 text-yellow-500 border border-yellow-500/20 hover:bg-yellow-500/20 rounded flex items-center gap-2 transition"><LockIcon/> Env Keys</button>
                     <button className="px-3 py-1.5 text-xs font-bold bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 hover:bg-emerald-500/20 rounded flex items-center gap-2 transition">📱 Build APK</button>
@@ -291,19 +354,17 @@ export default function App() {
             {/* Main Split Area */}
             <div className="flex-1 flex overflow-hidden">
                 
-                {/* 📜 Action Timeline (Left) with Chat Box at bottom */}
-                <div className="w-80 bg-[#0a0a0c] border-r border-[#1f1f23] flex flex-col shrink-0 relative">
+                {/* 📜 Action Timeline (Left) with Chat Box */}
+                <div className="w-80 bg-[#0a0a0c] border-r border-[#1f1f23] flex flex-col shrink-0 relative hidden md:flex">
                     <div className="p-3 border-b border-[#1f1f23] shrink-0">
                         <h2 className="text-[10px] font-bold text-yellow-500 uppercase tracking-widest flex items-center gap-2"><SparkleIcon/> ACTION TIMELINE</h2>
                     </div>
-                    
-                    {/* Logs Area */}
                     <div className="flex-1 overflow-y-auto p-4 space-y-6 pb-20 custom-scrollbar">
                         {actionLogs.map((log, index) => (
                             <div key={index} className="flex gap-3">
                                 {log.type === 'user' ? (
                                     <div className="bg-[#1a1a24] border border-[#2b2b36] rounded-lg p-3 text-sm text-gray-300 w-full shadow-sm">
-                                        <div className="text-[10px] text-blue-400 font-bold mb-1.5 flex items-center gap-1.5 uppercase tracking-wide"><SparkleIcon/> User Prompt</div>
+                                        <div className="text-[10px] text-blue-400 font-bold mb-1.5 flex items-center gap-1.5 uppercase tracking-wide"><MicIcon/> User Prompt</div>
                                         <div className="leading-relaxed">{log.text}</div>
                                     </div>
                                 ) : (
@@ -319,22 +380,11 @@ export default function App() {
                             </div>
                         ))}
                     </div>
-
-                    {/* Live Chat Box */}
                     <div className="absolute bottom-0 left-0 w-full bg-[#0a0a0c] border-t border-[#1f1f23] p-3">
                         <div className="bg-[#1a1a24] border border-[#2b2b36] rounded-xl flex items-center px-3 py-2.5 focus-within:border-blue-500/50 transition-all shadow-inner">
                             <button onClick={() => toggleListening('followUp')} className={`text-gray-500 hover:text-white transition mr-2 ${isListening ? 'text-red-500 animate-pulse' : ''}`}><MicIcon/></button>
-                            <input 
-                                type="text" 
-                                value={followUpPrompt} 
-                                onChange={(e)=>setFollowUpPrompt(e.target.value)} 
-                                placeholder="Ask for changes..." 
-                                className="flex-1 bg-transparent border-none outline-none text-xs text-white placeholder-gray-600"
-                                onKeyDown={(e) => { if(e.key === 'Enter') triggerBuild(followUpPrompt, true); }}
-                            />
-                            <button onClick={() => triggerBuild(followUpPrompt, true)} disabled={!followUpPrompt.trim() || isGenerating} className="bg-blue-600 hover:bg-blue-500 disabled:bg-gray-700 disabled:text-gray-500 text-white p-1.5 rounded-lg ml-2 transition shadow">
-                                <SendIcon/>
-                            </button>
+                            <input type="text" value={followUpPrompt} onChange={(e)=>setFollowUpPrompt(e.target.value)} placeholder="Ask for changes..." className="flex-1 bg-transparent border-none outline-none text-xs text-white placeholder-gray-600" onKeyDown={(e) => { if(e.key === 'Enter') triggerBuild(followUpPrompt, true); }} />
+                            <button onClick={() => triggerBuild(followUpPrompt, true)} disabled={!followUpPrompt.trim() || isGenerating} className="bg-blue-600 hover:bg-blue-500 disabled:bg-gray-700 disabled:text-gray-500 text-white p-1.5 rounded-lg ml-2 transition shadow"><SendIcon/></button>
                         </div>
                     </div>
                 </div>
@@ -354,13 +404,10 @@ export default function App() {
                     
                     <div className="flex-1 overflow-hidden relative">
                         {activeTab === 'code' ? (
-                            // 🔥 REAL VS CODE STYLE EDITOR 🔥
                             <div className="flex h-full w-full bg-[#1e1e1e] text-[#d4d4d4] font-mono text-[13px] overflow-hidden">
-                                {/* Line Numbers */}
                                 <div ref={lineNumbersRef} className="w-12 bg-[#1e1e1e] border-r border-[#333333] text-[#858585] flex flex-col items-end pr-3 py-4 select-none overflow-hidden" style={{lineHeight: '21px'}}>
                                     {lines.map(l => <div key={l}>{l}</div>)}
                                 </div>
-                                {/* Code Textarea */}
                                 <textarea 
                                     ref={codeTextareaRef}
                                     value={activeCode} 
@@ -401,11 +448,10 @@ export default function App() {
           </div>
       )}
 
-      {/* 🌍 THE ULTIMATE PUBLISH MODAL (GITHUB & DOMAIN FIXED) */}
+      {/* 🌍 THE ULTIMATE PUBLISH MODAL */}
       {isPublishModalOpen && (
           <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
               <div className="bg-[#111116] border border-[#2b2b2b] w-full max-w-3xl rounded-xl overflow-hidden shadow-2xl flex flex-col md:flex-row h-auto md:h-[450px]">
-                  {/* Left Sidebar */}
                   <div className="w-full md:w-1/3 bg-[#0a0a0c] border-r border-[#1f1f23] flex flex-col">
                       <div className="p-4 border-b border-[#1f1f23] flex items-center gap-2">
                           <CloudIcon /> <h3 className="font-bold text-sm">Publish Your App</h3>
@@ -429,8 +475,6 @@ export default function App() {
                           </button>
                       </div>
                   </div>
-
-                  {/* Right Content Area */}
                   <div className="w-full md:w-2/3 bg-[#111116] p-6 flex flex-col relative">
                       <button onClick={() => setIsPublishModalOpen(false)} className="absolute top-4 right-4 text-gray-500 hover:text-white transition"><CloseIcon/></button>
                       
@@ -453,56 +497,50 @@ export default function App() {
                                   <input type="text" value={awsTargetIp} onChange={(e) => setAwsTargetIp(e.target.value)} placeholder="e.g. 13.234.11.22" className="w-full bg-[#0A0A0E] border border-[#2b2b2b] rounded-lg p-2.5 text-sm text-white outline-none focus:border-orange-500 transition" />
                               </div>
                               <div className="mb-6">
-                                  <label className="text-xs text-gray-400 font-bold mb-1.5 block">Server Auth Key / Password</label>
+                                  <label className="text-xs text-gray-400 font-bold mb-1.5 block">Server Auth Key</label>
                                   <div className="flex gap-2">
                                       <input type="password" value={awsAuthKey ? '************************' : ''} readOnly placeholder="Upload .pem file" className="flex-1 bg-[#0A0A0E] border border-[#2b2b2b] rounded-lg p-2.5 text-sm text-gray-500 outline-none" />
                                       <label className="bg-[#1a1a24] border border-[#2b2b2b] hover:bg-[#2b2b36] cursor-pointer text-white px-4 py-2.5 rounded-lg text-xs font-bold flex items-center transition">
-                                          Upload .pem
-                                          <input type="file" accept=".pem" onChange={handlePemUpload} className="hidden" />
+                                          Upload .pem <input type="file" accept=".pem" onChange={handlePemUpload} className="hidden" />
                                       </label>
                                   </div>
                               </div>
                               <button onClick={handlePublish} className="mt-auto w-full bg-orange-600 hover:bg-orange-500 text-white py-3 rounded-lg font-bold text-sm shadow-lg transition">Deploy to AWS {awsInstanceType.toUpperCase()}</button>
                           </div>
                       )}
-
-                      {/* 🔥 NEW GITHUB UI 🔥 */}
                       {publishMethod === 'github' && (
                           <div className="flex flex-col h-full mt-4">
-                              <h4 className="text-white font-bold text-sm mb-4"><GithubIcon/> GitHub Push Configuration</h4>
+                              <h4 className="text-white font-bold text-sm mb-4 flex items-center gap-2"><GithubIcon/> GitHub Push Config</h4>
                               <div className="mb-4">
                                   <label className="text-xs text-gray-400 font-bold mb-1.5 block">Repository Name</label>
                                   <input type="text" value={gitRepoName} onChange={(e) => setGitRepoName(e.target.value)} placeholder="e.g. my-awesome-app" className="w-full bg-[#0A0A0E] border border-[#2b2b2b] rounded-lg p-2.5 text-sm text-white outline-none focus:border-gray-500 transition" />
                               </div>
                               <div className="mb-6">
-                                  <label className="text-xs text-gray-400 font-bold mb-1.5 block">GitHub Personal Access Token</label>
-                                  <input type="password" value={gitToken} onChange={(e) => setGitToken(e.target.value)} placeholder="ghp_xxxxxxxxxxxxxxxxxxxx" className="w-full bg-[#0A0A0E] border border-[#2b2b2b] rounded-lg p-2.5 text-sm text-white outline-none focus:border-gray-500 transition" />
+                                  <label className="text-xs text-gray-400 font-bold mb-1.5 block">Personal Access Token</label>
+                                  <input type="password" value={gitToken} onChange={(e) => setGitToken(e.target.value)} placeholder="ghp_xxxxxxxx" className="w-full bg-[#0A0A0E] border border-[#2b2b2b] rounded-lg p-2.5 text-sm text-white outline-none focus:border-gray-500 transition" />
                               </div>
-                              <button onClick={handlePublish} className="mt-auto w-full bg-gray-800 hover:bg-gray-700 border border-gray-600 text-white py-3 rounded-lg font-bold text-sm shadow-lg transition">Push to GitHub</button>
+                              <button onClick={handlePublish} className="mt-auto w-full bg-gray-800 hover:bg-gray-700 text-white py-3 rounded-lg font-bold text-sm transition">Push to GitHub</button>
                           </div>
                       )}
-
-                      {/* 🔥 NEW CUSTOM DOMAIN UI 🔥 */}
                       {publishMethod === 'domain' && (
                           <div className="flex flex-col h-full mt-4">
-                              <h4 className="text-green-500 font-bold text-sm mb-4"><LinkIcon/> Custom Domain & SSL</h4>
+                              <h4 className="text-green-500 font-bold text-sm mb-4 flex items-center gap-2"><LinkIcon/> Custom Domain</h4>
                               <div className="mb-4">
-                                  <label className="text-xs text-gray-400 font-bold mb-1.5 block">Your Domain Name</label>
+                                  <label className="text-xs text-gray-400 font-bold mb-1.5 block">Domain Name</label>
                                   <input type="text" value={customDomain} onChange={(e) => setCustomDomain(e.target.value)} placeholder="e.g. neovid-ai.com" className="w-full bg-[#0A0A0E] border border-[#2b2b2b] rounded-lg p-2.5 text-sm text-white outline-none focus:border-green-500 transition" />
                               </div>
                               <div className="mb-6">
-                                  <label className="text-xs text-gray-400 font-bold mb-1.5 block">AWS Server IP (Where app is hosted)</label>
+                                  <label className="text-xs text-gray-400 font-bold mb-1.5 block">AWS Server IP</label>
                                   <input type="text" value={awsTargetIp} onChange={(e) => setAwsTargetIp(e.target.value)} placeholder="e.g. 13.234.11.22" className="w-full bg-[#0A0A0E] border border-[#2b2b2b] rounded-lg p-2.5 text-sm text-white outline-none focus:border-green-500 transition" />
                               </div>
-                              <button onClick={handlePublish} className="mt-auto w-full bg-green-600 hover:bg-green-500 text-white py-3 rounded-lg font-bold text-sm shadow-lg transition">Setup Domain & SSL</button>
+                              <button onClick={handlePublish} className="mt-auto w-full bg-green-600 hover:bg-green-500 text-white py-3 rounded-lg font-bold text-sm transition">Setup SSL</button>
                           </div>
                       )}
-
                       {publishMethod === 'cloud' && (
                           <div className="flex flex-col h-full mt-4 justify-center items-center text-center">
-                              <h4 className="text-blue-500 font-bold text-lg mb-2">Instant Global Deployment</h4>
-                              <p className="text-gray-400 text-sm mb-8">Your app will be live at a secure mantu-cloud subdomain.</p>
-                              <button onClick={handlePublish} className="w-full max-w-xs bg-blue-600 hover:bg-blue-500 text-white py-3 rounded-lg font-bold text-sm shadow-lg transition flex items-center justify-center gap-2"><CloudIcon/> Go Live Now</button>
+                              <h4 className="text-blue-500 font-bold text-lg mb-2">Global Deployment</h4>
+                              <p className="text-gray-400 text-sm mb-8">Deploy instantly to mantu-cloud.</p>
+                              <button onClick={handlePublish} className="w-full max-w-xs bg-blue-600 hover:bg-blue-500 text-white py-3 rounded-lg font-bold text-sm transition flex justify-center items-center gap-2"><CloudIcon/> Go Live Now</button>
                           </div>
                       )}
                   </div>
