@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 
 // ==========================================
-// 🎨 FILE 1: ALL ICONS (Merged inside App.jsx)
+// 🎨 ALL ICONS (No imports needed)
 // ==========================================
 const SparkleIcon = () => <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="m12 3-1.9 5.8a2 2 0 0 1-1.3 1.3L3 12l5.8 1.9a2 2 0 0 1 1.3 1.3L12 21l1.9-5.8a2 2 0 0 1 1.3-1.3L21 12l-5.8-1.9a2 2 0 0 1-1.3-1.3L12 3Z"/></svg>;
 const MicIcon = () => <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="22"/></svg>;
@@ -17,20 +17,17 @@ const LinkIcon = () => <svg width="16" height="16" viewBox="0 0 24 24" fill="non
 const CpuIcon = () => <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect width="16" height="16" x="4" y="4" rx="2" ry="2"/><rect width="6" height="6" x="9" y="9" rx="1" ry="1"/><path d="M9 4v-2"/><path d="M15 4v-2"/><path d="M9 22v2"/><path d="M15 22v2"/><path d="M20 9h2"/><path d="M20 14h2"/><path d="M2 9h2"/><path d="M2 14h2"/></svg>;
 const LockIcon = () => <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>;
 const SettingsIcon = () => <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1Z"/></svg>;
+const SendIcon = () => <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>;
 
 // ==========================================
-// 🚀 FILE 2: MAIN APP & WORKSPACE
+// 🚀 MAIN APP COMPONENT
 // ==========================================
 export default function App() {
-  const BACKEND_URL = "https://visora-code.onrender.com"; // Verified Live Link
+  const BACKEND_URL = "https://visora-code.onrender.com"; // Your Live Mantu OS Backend
 
-  // 🧠 Prevent LocalStorage Crash (Fixes Blank Screen)
-  const safeJSONParse = (key, defaultVal) => {
-      try { return JSON.parse(localStorage.getItem(key)) || defaultVal; }
-      catch(e) { return defaultVal; }
-  };
-
+  // 🧠 Core States
   const [prompt, setPrompt] = useState('');
+  const [followUpPrompt, setFollowUpPrompt] = useState(''); // 🔥 Added for Live Chat Box
   const [view, setView] = useState('home'); 
   const [isGenerating, setIsGenerating] = useState(false);
   const [activeTab, setActiveTab] = useState('code'); 
@@ -56,17 +53,19 @@ export default function App() {
   // ==========================================
   // 🎤 VOICE LISTENER
   // ==========================================
-  const toggleListening = () => {
+  const toggleListening = (targetInput) => {
       if (isListening) { recognitionRef.current?.stop(); setIsListening(false); return; }
       const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
       if (!SpeechRecognition) return alert("Browser does not support Voice Typing.");
       const recognition = new SpeechRecognition();
       recognition.continuous = true; recognition.interimResults = true;
-      let initialPrompt = prompt;
+      
+      let initialPrompt = targetInput === 'followUp' ? followUpPrompt : prompt;
       recognition.onresult = (e) => {
           let currentTranscript = '';
           for (let i = 0; i < e.results.length; i++) currentTranscript += e.results[i][0].transcript;
-          setPrompt(initialPrompt + (initialPrompt ? ' ' : '') + currentTranscript);
+          if (targetInput === 'followUp') setFollowUpPrompt(initialPrompt + (initialPrompt ? ' ' : '') + currentTranscript);
+          else setPrompt(initialPrompt + (initialPrompt ? ' ' : '') + currentTranscript);
       };
       recognition.onerror = () => setIsListening(false); recognition.onend = () => setIsListening(false);
       recognitionRef.current = recognition; recognition.start(); setIsListening(true);
@@ -81,24 +80,32 @@ export default function App() {
   };
 
   // ==========================================
-  // 🚀 CRASH-PROOF STREAM FETCH
+  // 🚀 CRASH-PROOF STREAM FETCH (Handles both Home & Chat Box)
   // ==========================================
-  const handleGenerate = async () => {
-      if (!prompt.trim()) return;
+  const triggerBuild = async (text, isFollowUp = false) => {
+      if (!text.trim()) return;
       
       setIsGenerating(true); setView('editor'); setActiveTab('code'); setIsConsoleOpen(true);
-      setGeneratedFiles({});
       
-      setActionLogs([
-          { id: 1, type: 'user', text: prompt },
-          { id: 2, type: 'log', agent: 'MANTU OS', status: 'Active', details: 'Initializing Enterprise Engine...' }
-      ]);
-      setTerminalOutput(`> Initializing Engine [Model: GROQ]...\n> Architecting blueprint...`);
+      if (!isFollowUp) setGeneratedFiles({}); // Only clear files if it's a completely new prompt
+      
+      const newLogs = [...actionLogs, { id: Date.now(), type: 'user', text: text }];
+      
+      if (!isFollowUp) {
+          newLogs.push({ id: Date.now()+1, type: 'log', agent: 'MANTU OS', status: 'Active', details: 'Initializing Enterprise Engine...' });
+          setTerminalOutput(`> Initializing Engine [Model: GROQ]...\n> Architecting blueprint...`);
+      } else {
+          newLogs.push({ id: Date.now()+1, type: 'log', agent: 'MANTU OS', status: 'Active', details: 'Processing update request...' });
+          setTerminalOutput(prev => prev + `\n> Processing follow-up request...`);
+      }
+      
+      setActionLogs(newLogs);
+      if(isFollowUp) setFollowUpPrompt(''); else setPrompt('');
       
       try {
           const res = await fetch(`${BACKEND_URL}/api/build`, { 
               method: 'POST', headers: { 'Content-Type': 'application/json' }, 
-              body: JSON.stringify({ prompt: prompt }) 
+              body: JSON.stringify({ prompt: text, existingFiles: isFollowUp ? generatedFiles : {} }) 
           });
           
           if (!res.ok) throw new Error(`Backend Connection Refused. Server might be sleeping.`);
@@ -181,7 +188,7 @@ export default function App() {
            <button className="hover:text-white transition flex items-center gap-2"><SparkleIcon/> History</button>
            <button className="hover:text-white transition"><SettingsIcon/></button>
            {view === 'home' && Object.keys(generatedFiles).length > 0 && (
-               <button onClick={() => setView('editor')} className="text-xs font-bold text-white bg-blue-600 px-4 py-1.5 rounded-full hover:bg-blue-500">Resume →</button>
+               <button onClick={() => setView('editor')} className="text-xs font-bold text-white bg-blue-600 px-4 py-1.5 rounded-full hover:bg-blue-500 shadow-lg">Resume →</button>
            )}
         </div>
       </nav>
@@ -192,7 +199,7 @@ export default function App() {
             <h1 className="text-5xl md:text-6xl font-extrabold mb-6 text-center tracking-tight">
                 Build & Deploy in <span className="text-blue-600">Seconds</span>
             </h1>
-            <p className="text-gray-400 mb-12 max-w-xl text-center text-sm md:text-base">
+            <p className="text-gray-400 mb-12 max-w-xl text-center text-sm md:text-base leading-relaxed">
                 Describe your dream SaaS, App, or Dashboard. Mantu AI will write the code, bundle the project, and deploy it to a live global URL instantly.
             </p>
             
@@ -201,14 +208,14 @@ export default function App() {
                     value={prompt} onChange={(e) => setPrompt(e.target.value)} 
                     placeholder="e.g. Build an AI video generator SaaS dashboard..."
                     className="w-full bg-transparent border-none outline-none p-5 resize-none min-h-[140px] text-lg text-white placeholder-gray-600"
-                    onKeyDown={(e) => { if(e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleGenerate(); } }}
+                    onKeyDown={(e) => { if(e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); triggerBuild(prompt, false); } }}
                 />
                 <div className="flex items-center justify-between p-3">
                     <div className="flex gap-3 px-2 text-gray-500">
-                        <button onClick={toggleListening} className={`hover:text-white transition ${isListening ? 'text-red-500 animate-pulse' : ''}`}><MicIcon/></button>
+                        <button onClick={() => toggleListening('new')} className={`hover:text-white transition ${isListening ? 'text-red-500 animate-pulse' : ''}`}><MicIcon/></button>
                         <button className="hover:text-white transition"><ImageIcon/></button>
                     </div>
-                    <button onClick={handleGenerate} disabled={isGenerating} className="bg-[#1a40af] hover:bg-blue-600 text-blue-100 px-6 py-2 rounded-xl font-bold flex items-center gap-2 transition disabled:opacity-50 text-sm">
+                    <button onClick={() => triggerBuild(prompt, false)} disabled={isGenerating} className="bg-[#1a40af] hover:bg-blue-600 text-blue-100 px-6 py-2 rounded-xl font-bold flex items-center gap-2 transition disabled:opacity-50 text-sm">
                         {isGenerating ? <span className="animate-spin">🌀</span> : <SparkleIcon/>} {isGenerating ? 'Building...' : 'Generate'}
                     </button>
                 </div>
@@ -220,32 +227,35 @@ export default function App() {
             {/* Editor Toolbar */}
             <div className="h-12 bg-[#0d0d12] border-b border-[#1f1f23] flex items-center justify-between px-4 shrink-0 overflow-x-auto custom-scrollbar">
                 <div className="flex gap-1 bg-[#1a1a24] p-1 rounded-lg shrink-0">
-                    <button onClick={()=>setActiveTab('preview')} className={`px-4 py-1 text-xs font-bold rounded flex items-center gap-2 ${activeTab === 'preview' ? 'bg-[#2b2b36] text-white shadow' : 'text-gray-400 hover:text-white'}`}><PlayIcon/> Live Preview</button>
-                    <button onClick={()=>setActiveTab('code')} className={`px-4 py-1 text-xs font-bold rounded flex items-center gap-2 ${activeTab === 'code' ? 'bg-[#2b2b36] text-white shadow' : 'text-gray-400 hover:text-white'}`}><CodeIcon/> View Code</button>
+                    <button onClick={()=>setActiveTab('preview')} className={`px-4 py-1 text-xs font-bold rounded flex items-center gap-2 ${activeTab === 'preview' ? 'bg-[#2b2b36] text-white shadow' : 'text-gray-400 hover:text-white transition'}`}><PlayIcon/> Live Preview</button>
+                    <button onClick={()=>setActiveTab('code')} className={`px-4 py-1 text-xs font-bold rounded flex items-center gap-2 ${activeTab === 'code' ? 'bg-[#2b2b36] text-white shadow' : 'text-gray-400 hover:text-white transition'}`}><CodeIcon/> View Code</button>
                 </div>
                 <div className="flex gap-2 shrink-0">
-                    <button className="px-3 py-1.5 text-xs font-bold bg-[#1a1a24] text-blue-400 border border-blue-900/50 hover:bg-blue-900/20 rounded flex items-center gap-2"><SparkleIcon/> Save Project</button>
-                    <button onClick={() => setIsConsoleOpen(!isConsoleOpen)} className="px-3 py-1.5 text-xs font-bold bg-[#1a1a24] text-gray-300 hover:bg-[#2b2b36] rounded flex items-center gap-2"><TerminalIcon/> _Console</button>
-                    <button onClick={() => setIsEnvModalOpen(true)} className="px-3 py-1.5 text-xs font-bold bg-yellow-500/10 text-yellow-500 border border-yellow-500/20 hover:bg-yellow-500/20 rounded flex items-center gap-2"><LockIcon/> Env Keys</button>
-                    <button className="px-3 py-1.5 text-xs font-bold bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 hover:bg-emerald-500/20 rounded flex items-center gap-2">📱 Build APK</button>
-                    <button onClick={() => setIsPublishModalOpen(true)} className="px-4 py-1.5 text-xs font-bold bg-blue-600 hover:bg-blue-500 text-white rounded flex items-center gap-2"><CloudIcon/> Publish App</button>
+                    <button className="px-3 py-1.5 text-xs font-bold bg-[#1a1a24] text-blue-400 border border-blue-900/50 hover:bg-blue-900/20 rounded flex items-center gap-2 transition"><SparkleIcon/> Save Project</button>
+                    <button onClick={() => setIsConsoleOpen(!isConsoleOpen)} className="px-3 py-1.5 text-xs font-bold bg-[#1a1a24] text-gray-300 hover:bg-[#2b2b36] rounded flex items-center gap-2 transition"><TerminalIcon/> _Console</button>
+                    <button onClick={() => setIsEnvModalOpen(true)} className="px-3 py-1.5 text-xs font-bold bg-yellow-500/10 text-yellow-500 border border-yellow-500/20 hover:bg-yellow-500/20 rounded flex items-center gap-2 transition"><LockIcon/> Env Keys</button>
+                    <button className="px-3 py-1.5 text-xs font-bold bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 hover:bg-emerald-500/20 rounded flex items-center gap-2 transition">📱 Build APK</button>
+                    <button onClick={() => setIsPublishModalOpen(true)} className="px-4 py-1.5 text-xs font-bold bg-blue-600 hover:bg-blue-500 text-white rounded flex items-center gap-2 shadow transition"><CloudIcon/> Publish App</button>
                 </div>
             </div>
 
             {/* Main Split Area */}
             <div className="flex-1 flex overflow-hidden">
-                {/* 📜 Action Timeline (Left) */}
-                <div className="w-80 bg-[#0a0a0c] border-r border-[#1f1f23] flex flex-col shrink-0 hidden md:flex">
-                    <div className="p-3 border-b border-[#1f1f23]">
+                
+                {/* 📜 Action Timeline (Left) with Chat Box at bottom */}
+                <div className="w-80 bg-[#0a0a0c] border-r border-[#1f1f23] flex flex-col shrink-0 relative">
+                    <div className="p-3 border-b border-[#1f1f23] shrink-0">
                         <h2 className="text-[10px] font-bold text-yellow-500 uppercase tracking-widest flex items-center gap-2"><SparkleIcon/> ACTION TIMELINE</h2>
                     </div>
-                    <div className="flex-1 overflow-y-auto p-4 space-y-6 custom-scrollbar">
+                    
+                    {/* Logs Area (Added pb-20 to leave space for input) */}
+                    <div className="flex-1 overflow-y-auto p-4 space-y-6 pb-20 custom-scrollbar">
                         {actionLogs.map((log, index) => (
                             <div key={index} className="flex gap-3">
                                 {log.type === 'user' ? (
-                                    <div className="bg-[#1a1a24] border border-[#2b2b36] rounded p-3 text-sm text-gray-300 w-full">
-                                        <div className="text-[10px] text-blue-400 font-bold mb-1 flex items-center gap-1"><MicIcon/> User Prompt</div>
-                                        {log.text}
+                                    <div className="bg-[#1a1a24] border border-[#2b2b36] rounded-lg p-3 text-sm text-gray-300 w-full shadow-sm">
+                                        <div className="text-[10px] text-blue-400 font-bold mb-1.5 flex items-center gap-1.5 uppercase tracking-wide"><SparkleIcon/> User Prompt</div>
+                                        <div className="leading-relaxed">{log.text}</div>
                                     </div>
                                 ) : (
                                     <>
@@ -260,6 +270,24 @@ export default function App() {
                             </div>
                         ))}
                     </div>
+
+                    {/* 🔥 THE MISSING LIVE CHAT BOX 🔥 */}
+                    <div className="absolute bottom-0 left-0 w-full bg-[#0a0a0c] border-t border-[#1f1f23] p-3">
+                        <div className="bg-[#1a1a24] border border-[#2b2b36] rounded-xl flex items-center px-3 py-2.5 focus-within:border-blue-500/50 transition-all shadow-inner">
+                            <button onClick={() => toggleListening('followUp')} className={`text-gray-500 hover:text-white transition mr-2 ${isListening ? 'text-red-500 animate-pulse' : ''}`}><MicIcon/></button>
+                            <input 
+                                type="text" 
+                                value={followUpPrompt} 
+                                onChange={(e)=>setFollowUpPrompt(e.target.value)} 
+                                placeholder="Ask for changes..." 
+                                className="flex-1 bg-transparent border-none outline-none text-xs text-white placeholder-gray-600"
+                                onKeyDown={(e) => { if(e.key === 'Enter') triggerBuild(followUpPrompt, true); }}
+                            />
+                            <button onClick={() => triggerBuild(followUpPrompt, true)} disabled={!followUpPrompt.trim() || isGenerating} className="bg-blue-600 hover:bg-blue-500 disabled:bg-gray-700 disabled:text-gray-500 text-white p-1.5 rounded-lg ml-2 transition shadow">
+                                <SendIcon/>
+                            </button>
+                        </div>
+                    </div>
                 </div>
 
                 {/* 💻 Code / Preview Area (Right) */}
@@ -272,6 +300,7 @@ export default function App() {
                                 📄 {file}
                             </button>
                         ))}
+                        {Object.keys(generatedFiles).length === 0 && <div className="px-4 py-2.5 text-[11px] font-mono text-gray-600 italic">Waiting for AI generation...</div>}
                     </div>
                     <div className="flex-1 overflow-hidden relative">
                         {activeTab === 'code' ? (
@@ -282,7 +311,13 @@ export default function App() {
                                 spellCheck="false"
                             />
                         ) : (
-                            <iframe srcDoc={renderLivePreview()} className="w-full h-full bg-white border-none" sandbox="allow-scripts allow-same-origin" title="preview" />
+                            <div className="w-full h-full bg-white flex items-center justify-center">
+                                {Object.keys(generatedFiles).length > 0 ? (
+                                    <iframe srcDoc={renderLivePreview()} className="w-full h-full border-none" sandbox="allow-scripts allow-same-origin" title="preview" />
+                                ) : (
+                                    <div className="text-gray-400 flex flex-col items-center gap-3"><SparkleIcon/> <span>No preview available yet.</span></div>
+                                )}
+                            </div>
                         )}
                     </div>
                 </div>
@@ -293,7 +328,7 @@ export default function App() {
       {/* 🖥️ BOTTOM CONSOLE */}
       {view === 'editor' && (
           <div className={`w-full transition-all duration-300 z-40 bg-[#0a0a0c] border-t border-[#1f1f23] shrink-0 ${isConsoleOpen ? 'h-56' : 'h-8'}`}>
-              <div className="flex items-center justify-between px-4 h-8 cursor-pointer hover:bg-[#1a1a24]" onClick={() => setIsConsoleOpen(!isConsoleOpen)}>
+              <div className="flex items-center justify-between px-4 h-8 cursor-pointer hover:bg-[#1a1a24] transition-colors" onClick={() => setIsConsoleOpen(!isConsoleOpen)}>
                   <div className="text-[10px] font-bold text-gray-400 flex items-center gap-2 uppercase tracking-wider"><TerminalIcon/> OUTPUT CONSOLE</div>
                   <button className="text-gray-500 hover:text-white">{isConsoleOpen ? '▼' : '▲'}</button>
               </div>
@@ -336,18 +371,18 @@ export default function App() {
 
                   {/* Right Content Area */}
                   <div className="w-full md:w-2/3 bg-[#111116] p-6 flex flex-col relative">
-                      <button onClick={() => setIsPublishModalOpen(false)} className="absolute top-4 right-4 text-gray-500 hover:text-white"><CloseIcon/></button>
+                      <button onClick={() => setIsPublishModalOpen(false)} className="absolute top-4 right-4 text-gray-500 hover:text-white transition"><CloseIcon/></button>
                       
                       {publishMethod === 'aws' && (
                           <div className="flex flex-col h-full mt-4">
                               <h4 className="text-orange-500 font-bold text-sm mb-4">AWS Automatic Deployment</h4>
                               
                               <div className="flex gap-3 mb-6">
-                                  <button onClick={()=>setAwsInstanceType('cpu')} className={`flex-1 p-3 rounded-lg border flex flex-col items-start ${awsInstanceType === 'cpu' ? 'border-orange-500 bg-orange-500/5 text-orange-400' : 'border-[#2b2b2b] text-gray-400 hover:border-gray-600'}`}>
+                                  <button onClick={()=>setAwsInstanceType('cpu')} className={`flex-1 p-3 rounded-lg border flex flex-col items-start transition ${awsInstanceType === 'cpu' ? 'border-orange-500 bg-orange-500/5 text-orange-400' : 'border-[#2b2b2b] text-gray-400 hover:border-gray-600'}`}>
                                       <div className="flex items-center gap-2 font-bold text-xs"><CpuIcon/> CPU Instance</div>
                                       <div className="text-[10px] mt-1 opacity-70">t2.micro / t3.small</div>
                                   </button>
-                                  <button onClick={()=>setAwsInstanceType('gpu')} className={`flex-1 p-3 rounded-lg border flex flex-col items-start relative ${awsInstanceType === 'gpu' ? 'border-purple-500 bg-purple-500/5 text-purple-400' : 'border-[#2b2b2b] text-gray-400 hover:border-gray-600'}`}>
+                                  <button onClick={()=>setAwsInstanceType('gpu')} className={`flex-1 p-3 rounded-lg border flex flex-col items-start relative transition ${awsInstanceType === 'gpu' ? 'border-purple-500 bg-purple-500/5 text-purple-400' : 'border-[#2b2b2b] text-gray-400 hover:border-gray-600'}`}>
                                       <span className="absolute -top-2 -right-2 bg-purple-600 text-[9px] text-white px-2 py-0.5 rounded-full font-bold">PRO</span>
                                       <div className="flex items-center gap-2 font-bold text-xs">⚡ GPU Instance</div>
                                       <div className="text-[10px] mt-1 opacity-70">g4dn.xlarge (T4/A100)</div>
@@ -355,15 +390,15 @@ export default function App() {
                               </div>
 
                               <div className="mb-4">
-                                  <label className="text-xs text-gray-400 font-bold mb-1 block">Target IP Address</label>
-                                  <input type="text" value={awsTargetIp} onChange={(e) => setAwsTargetIp(e.target.value)} placeholder="e.g. 13.234.11.22" className="w-full bg-[#0A0A0E] border border-[#2b2b2b] rounded-lg p-2.5 text-sm text-white outline-none focus:border-orange-500" />
+                                  <label className="text-xs text-gray-400 font-bold mb-1.5 block">Target IP Address</label>
+                                  <input type="text" value={awsTargetIp} onChange={(e) => setAwsTargetIp(e.target.value)} placeholder="e.g. 13.234.11.22" className="w-full bg-[#0A0A0E] border border-[#2b2b2b] rounded-lg p-2.5 text-sm text-white outline-none focus:border-orange-500 transition" />
                               </div>
                               
                               <div className="mb-6">
-                                  <label className="text-xs text-gray-400 font-bold mb-1 block">Server Auth Key / Password</label>
+                                  <label className="text-xs text-gray-400 font-bold mb-1.5 block">Server Auth Key / Password</label>
                                   <div className="flex gap-2">
                                       <input type="password" value={awsAuthKey ? '************************' : ''} readOnly placeholder="Upload .pem file" className="flex-1 bg-[#0A0A0E] border border-[#2b2b2b] rounded-lg p-2.5 text-sm text-gray-500 outline-none" />
-                                      <label className="bg-[#1a1a24] border border-[#2b2b2b] hover:bg-[#2b2b36] cursor-pointer text-white px-4 py-2.5 rounded-lg text-xs font-bold flex items-center">
+                                      <label className="bg-[#1a1a24] border border-[#2b2b2b] hover:bg-[#2b2b36] cursor-pointer text-white px-4 py-2.5 rounded-lg text-xs font-bold flex items-center transition">
                                           Upload .pem
                                           <input type="file" accept=".pem" onChange={handlePemUpload} className="hidden" />
                                       </label>
@@ -378,7 +413,7 @@ export default function App() {
                           <div className="flex flex-col h-full mt-4 justify-center items-center text-center">
                               <h4 className="text-blue-500 font-bold text-lg mb-2">Instant Global Deployment</h4>
                               <p className="text-gray-400 text-sm mb-8">Your app will be live at a secure mantu-cloud subdomain.</p>
-                              <button onClick={handlePublish} className="w-full max-w-xs bg-blue-600 hover:bg-blue-500 text-white py-3 rounded-lg font-bold text-sm shadow-lg transition">🚀 Go Live Now</button>
+                              <button onClick={handlePublish} className="w-full max-w-xs bg-blue-600 hover:bg-blue-500 text-white py-3 rounded-lg font-bold text-sm shadow-lg transition flex items-center justify-center gap-2"><CloudIcon/> Go Live Now</button>
                           </div>
                       )}
 
@@ -393,24 +428,24 @@ export default function App() {
       {isEnvModalOpen && (
          <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
             <div className="bg-[#111116] border border-[#2b2b2b] w-full max-w-lg rounded-xl overflow-hidden shadow-2xl">
-                <div className="p-4 border-b border-[#2b2b2b] flex justify-between items-center">
-                    <h3 className="text-sm font-bold text-white flex items-center gap-2"><LockIcon/> Env Variables</h3>
-                    <button onClick={() => setIsEnvModalOpen(false)} className="text-gray-400 hover:text-white"><CloseIcon/></button>
+                <div className="p-4 border-b border-[#2b2b2b] flex justify-between items-center bg-yellow-500/5">
+                    <h3 className="text-sm font-bold text-yellow-500 flex items-center gap-2"><LockIcon/> Env Variables</h3>
+                    <button onClick={() => setIsEnvModalOpen(false)} className="text-gray-400 hover:text-white transition"><CloseIcon/></button>
                 </div>
                 <div className="p-6 flex flex-col gap-4">
-                    <div className="flex gap-2 text-[10px] font-bold text-gray-500 uppercase">
+                    <div className="flex gap-2 text-[10px] font-bold text-gray-500 uppercase tracking-widest">
                         <div className="w-1/3 pl-1">KEY</div>
                         <div className="flex-1 pl-1">VALUE</div>
                     </div>
                     {projectEnv.map((env, i) => (
                         <div key={i} className="flex gap-2 items-center">
-                            <input type="text" value={env.key} onChange={(e) => { const n = [...projectEnv]; n[i].key = e.target.value; setProjectEnv(n); }} className="w-1/3 bg-[#0A0A0E] border border-[#2b2b2b] rounded-lg p-2.5 text-sm text-white outline-none" />
-                            <input type="text" value={env.value} onChange={(e) => { const n = [...projectEnv]; n[i].value = e.target.value; setProjectEnv(n); }} className="flex-1 bg-[#0A0A0E] border border-[#2b2b2b] rounded-lg p-2.5 text-sm text-white outline-none" />
-                            <button onClick={() => setProjectEnv(projectEnv.filter((_, idx) => idx !== i))} className="text-red-500 hover:text-red-400 px-2 font-bold">X</button>
+                            <input type="text" value={env.key} onChange={(e) => { const n = [...projectEnv]; n[i].key = e.target.value; setProjectEnv(n); }} placeholder="e.g. API_KEY" className="w-1/3 bg-[#0A0A0E] border border-[#2b2b2b] rounded-lg p-2.5 text-sm text-white outline-none focus:border-yellow-500 transition" />
+                            <input type="text" value={env.value} onChange={(e) => { const n = [...projectEnv]; n[i].value = e.target.value; setProjectEnv(n); }} placeholder="Value..." className="flex-1 bg-[#0A0A0E] border border-[#2b2b2b] rounded-lg p-2.5 text-sm text-white outline-none focus:border-yellow-500 transition" />
+                            <button onClick={() => setProjectEnv(projectEnv.filter((_, idx) => idx !== i))} className="text-red-500 hover:text-red-400 px-2 font-bold transition">X</button>
                         </div>
                     ))}
-                    <button onClick={() => setProjectEnv([...projectEnv, { key: '', value: '' }])} className="text-xs text-blue-500 font-bold w-max hover:underline">+ Add Variable</button>
-                    <button onClick={() => setIsEnvModalOpen(false)} className="mt-4 w-full bg-blue-600 hover:bg-blue-500 text-white py-3 rounded-lg font-bold text-sm transition">Save Keys</button>
+                    <button onClick={() => setProjectEnv([...projectEnv, { key: '', value: '' }])} className="text-xs text-blue-500 font-bold w-max hover:text-blue-400 transition">+ Add Variable</button>
+                    <button onClick={() => setIsEnvModalOpen(false)} className="mt-4 w-full bg-blue-600 hover:bg-blue-500 text-white py-3 rounded-lg font-bold text-sm shadow transition">Save Keys</button>
                 </div>
             </div>
          </div>
