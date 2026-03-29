@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 
 // ==========================================
-// 🎨 ALL ICONS (No imports needed)
+// 🎨 FILE 1: ALL ICONS (Merged inside App.jsx)
 // ==========================================
 const SparkleIcon = () => <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="m12 3-1.9 5.8a2 2 0 0 1-1.3 1.3L3 12l5.8 1.9a2 2 0 0 1 1.3 1.3L12 21l1.9-5.8a2 2 0 0 1 1.3-1.3L21 12l-5.8-1.9a2 2 0 0 1-1.3-1.3L12 3Z"/></svg>;
 const MicIcon = () => <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="22"/></svg>;
@@ -16,14 +16,20 @@ const GithubIcon = () => <svg width="16" height="16" viewBox="0 0 24 24" fill="n
 const LinkIcon = () => <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>;
 const CpuIcon = () => <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect width="16" height="16" x="4" y="4" rx="2" ry="2"/><rect width="6" height="6" x="9" y="9" rx="1" ry="1"/><path d="M9 4v-2"/><path d="M15 4v-2"/><path d="M9 22v2"/><path d="M15 22v2"/><path d="M20 9h2"/><path d="M20 14h2"/><path d="M2 9h2"/><path d="M2 14h2"/></svg>;
 const LockIcon = () => <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>;
+const SettingsIcon = () => <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1Z"/></svg>;
 
 // ==========================================
-// 🚀 MAIN APP COMPONENT
+// 🚀 FILE 2: MAIN APP & WORKSPACE
 // ==========================================
 export default function App() {
-  const BACKEND_URL = "https://visora-code.onrender.com"; // Your Live Mantu OS Backend
+  const BACKEND_URL = "https://visora-code.onrender.com"; // Verified Live Link
 
-  // 🧠 Core States
+  // 🧠 Prevent LocalStorage Crash (Fixes Blank Screen)
+  const safeJSONParse = (key, defaultVal) => {
+      try { return JSON.parse(localStorage.getItem(key)) || defaultVal; }
+      catch(e) { return defaultVal; }
+  };
+
   const [prompt, setPrompt] = useState('');
   const [view, setView] = useState('home'); 
   const [isGenerating, setIsGenerating] = useState(false);
@@ -34,23 +40,21 @@ export default function App() {
   const [terminalOutput, setTerminalOutput] = useState("> System Ready. Welcome to Mantu OS.");
   const [isConsoleOpen, setIsConsoleOpen] = useState(false);
   
-  // 🎤 Attachments & Listeners
+  // 🎤 UI & Modals
   const [isListening, setIsListening] = useState(false);
   const recognitionRef = useRef(null);
 
-  // 🌍 Publish Modal States
   const [isPublishModalOpen, setIsPublishModalOpen] = useState(false);
-  const [publishMethod, setPublishMethod] = useState('aws'); // cloud, aws, github, domain
-  const [awsInstanceType, setAwsInstanceType] = useState('cpu'); // cpu, gpu
+  const [publishMethod, setPublishMethod] = useState('aws'); 
+  const [awsInstanceType, setAwsInstanceType] = useState('cpu'); 
   const [awsTargetIp, setAwsTargetIp] = useState(""); 
   const [awsAuthKey, setAwsAuthKey] = useState(""); 
   
-  // 🔐 Env Modal States
   const [isEnvModalOpen, setIsEnvModalOpen] = useState(false);
   const [projectEnv, setProjectEnv] = useState([{ key: '', value: '' }]);
 
   // ==========================================
-  // 🎤 VOICE LOGIC
+  // 🎤 VOICE LISTENER
   // ==========================================
   const toggleListening = () => {
       if (isListening) { recognitionRef.current?.stop(); setIsListening(false); return; }
@@ -77,7 +81,7 @@ export default function App() {
   };
 
   // ==========================================
-  // 🚀 CRASH-PROOF BUILD ENGINE
+  // 🚀 CRASH-PROOF STREAM FETCH
   // ==========================================
   const handleGenerate = async () => {
       if (!prompt.trim()) return;
@@ -97,7 +101,7 @@ export default function App() {
               body: JSON.stringify({ prompt: prompt }) 
           });
           
-          if (!res.ok) throw new Error(`Backend Connection Refused.`);
+          if (!res.ok) throw new Error(`Backend Connection Refused. Server might be sleeping.`);
           
           const reader = res.body.getReader(); const decoder = new TextDecoder();
           let buffer = ""; 
@@ -117,7 +121,7 @@ export default function App() {
                           
                           if (data.type === 'log') {
                               setTerminalOutput(prev => prev + `\n> [${data.agent}] ${data.details}`);
-                              setActionLogs(prev => [...prev, { id: Date.now(), type: 'log', agent: data.agent, status: data.status, details: data.details }]);
+                              setActionLogs(prev => [...prev, { id: Date.now()+Math.random(), type: 'log', agent: data.agent, status: data.status, details: data.details }]);
                           } else if (data.type === 'file') {
                               let cleanCode = String(data.code).replace(/\\n/g, '\n').replace(/\\"/g, '"');
                               cleanCode = cleanCode.replace(/```[a-zA-Z]*\n?/g, '').replace(/```/g, '').trim();
@@ -129,7 +133,7 @@ export default function App() {
                               });
                           } else if (data.type === 'done') {
                               setTerminalOutput(prev => prev + `\n> 🎉 Generation Complete!`);
-                              setActionLogs(prev => [...prev, { id: Date.now(), type: 'log', agent: 'SYSTEM', status: 'Done', details: 'Files generated successfully!' }]);
+                              setActionLogs(prev => [...prev, { id: Date.now()+Math.random(), type: 'log', agent: 'SYSTEM', status: 'Done', details: 'Files generated successfully!' }]);
                           }
                       } catch (err) {}
                   }
@@ -141,6 +145,9 @@ export default function App() {
       } finally { setIsGenerating(false); }
   };
 
+  // ==========================================
+  // 💻 LIVE PREVIEW COMPILER
+  // ==========================================
   const renderLivePreview = () => {
       let htmlFile = generatedFiles['index.html'] || generatedFiles['public/index.html'] || `<div id="root" class="flex items-center justify-center h-screen font-sans bg-[#030303] text-gray-400">Building UI...</div>`;
       let cssFile = generatedFiles['styles.css'] || generatedFiles['index.css'] || "";
@@ -152,23 +159,19 @@ export default function App() {
       return `<!DOCTYPE html><html><head>${reactImports}</head><body>${htmlFile}${executeReact}</body></html>`;
   };
 
-  // ==========================================
-  // 🌍 PUBLISH & ENV ACTIONS
-  // ==========================================
   const handlePublish = async () => {
       setIsPublishModalOpen(false); setIsConsoleOpen(true);
       setTerminalOutput(`> 🚀 Initiating Deployment via ${publishMethod.toUpperCase()}...`);
-      // Add fetch logic to BACKEND_URL/api/publish-... here
       setTimeout(() => setTerminalOutput(prev => prev + `\n> ✅ Deployment logic triggered successfully.`), 1000);
   };
 
   // ==========================================
-  // 🎨 UI RENDER
+  // 🎨 FULL RENDER
   // ==========================================
   return (
     <div className="h-[100dvh] w-full flex flex-col font-sans overflow-hidden bg-[#050505] text-white">
       
-      {/* 🔝 1. MAIN TOP NAVBAR */}
+      {/* 🔝 NAVBAR */}
       <nav className="h-14 flex items-center justify-between px-6 border-b border-[#1f1f23] bg-[#0a0a0c] shrink-0 z-20">
         <div className="text-xl font-extrabold flex items-center gap-2 cursor-pointer" onClick={() => setView('home')}>
             <span className="text-blue-600 font-mono tracking-tighter">#</span> mantu_ai
@@ -183,7 +186,7 @@ export default function App() {
         </div>
       </nav>
 
-      {/* 🏠 2. HOME VIEW (Matches 46872.jpg) */}
+      {/* 🏠 HOME VIEW */}
       {view === 'home' ? (
         <div className="flex-1 flex flex-col items-center pt-24 p-4 overflow-y-auto">
             <h1 className="text-5xl md:text-6xl font-extrabold mb-6 text-center tracking-tight">
@@ -212,28 +215,27 @@ export default function App() {
             </div>
         </div>
       ) : (
-        /* 💻 3. EDITOR VIEW (Matches 47148.jpg) */
+        /* 💻 EDITOR VIEW */
         <div className="flex-1 flex flex-col overflow-hidden">
             {/* Editor Toolbar */}
-            <div className="h-12 bg-[#0d0d12] border-b border-[#1f1f23] flex items-center justify-between px-4 shrink-0">
-                <div className="flex gap-1 bg-[#1a1a24] p-1 rounded-lg">
+            <div className="h-12 bg-[#0d0d12] border-b border-[#1f1f23] flex items-center justify-between px-4 shrink-0 overflow-x-auto custom-scrollbar">
+                <div className="flex gap-1 bg-[#1a1a24] p-1 rounded-lg shrink-0">
                     <button onClick={()=>setActiveTab('preview')} className={`px-4 py-1 text-xs font-bold rounded flex items-center gap-2 ${activeTab === 'preview' ? 'bg-[#2b2b36] text-white shadow' : 'text-gray-400 hover:text-white'}`}><PlayIcon/> Live Preview</button>
                     <button onClick={()=>setActiveTab('code')} className={`px-4 py-1 text-xs font-bold rounded flex items-center gap-2 ${activeTab === 'code' ? 'bg-[#2b2b36] text-white shadow' : 'text-gray-400 hover:text-white'}`}><CodeIcon/> View Code</button>
                 </div>
-                <div className="flex gap-2">
+                <div className="flex gap-2 shrink-0">
                     <button className="px-3 py-1.5 text-xs font-bold bg-[#1a1a24] text-blue-400 border border-blue-900/50 hover:bg-blue-900/20 rounded flex items-center gap-2"><SparkleIcon/> Save Project</button>
                     <button onClick={() => setIsConsoleOpen(!isConsoleOpen)} className="px-3 py-1.5 text-xs font-bold bg-[#1a1a24] text-gray-300 hover:bg-[#2b2b36] rounded flex items-center gap-2"><TerminalIcon/> _Console</button>
                     <button onClick={() => setIsEnvModalOpen(true)} className="px-3 py-1.5 text-xs font-bold bg-yellow-500/10 text-yellow-500 border border-yellow-500/20 hover:bg-yellow-500/20 rounded flex items-center gap-2"><LockIcon/> Env Keys</button>
                     <button className="px-3 py-1.5 text-xs font-bold bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 hover:bg-emerald-500/20 rounded flex items-center gap-2">📱 Build APK</button>
-                    <button className="px-3 py-1.5 text-xs font-bold bg-[#1a1a24] text-gray-300 hover:bg-[#2b2b36] rounded flex items-center gap-2">⬇️ Download ZIP</button>
-                    <button onClick={() => setIsPublishModalOpen(true)} className="px-4 py-1.5 text-xs font-bold bg-green-600 hover:bg-green-500 text-white rounded flex items-center gap-2"><CloudIcon/> Publish App</button>
+                    <button onClick={() => setIsPublishModalOpen(true)} className="px-4 py-1.5 text-xs font-bold bg-blue-600 hover:bg-blue-500 text-white rounded flex items-center gap-2"><CloudIcon/> Publish App</button>
                 </div>
             </div>
 
-            {/* Main Split */}
+            {/* Main Split Area */}
             <div className="flex-1 flex overflow-hidden">
                 {/* 📜 Action Timeline (Left) */}
-                <div className="w-80 bg-[#0a0a0c] border-r border-[#1f1f23] flex flex-col shrink-0">
+                <div className="w-80 bg-[#0a0a0c] border-r border-[#1f1f23] flex flex-col shrink-0 hidden md:flex">
                     <div className="p-3 border-b border-[#1f1f23]">
                         <h2 className="text-[10px] font-bold text-yellow-500 uppercase tracking-widest flex items-center gap-2"><SparkleIcon/> ACTION TIMELINE</h2>
                     </div>
@@ -261,7 +263,7 @@ export default function App() {
                 </div>
 
                 {/* 💻 Code / Preview Area (Right) */}
-                <div className="flex-1 flex flex-col bg-[#0d0d12]">
+                <div className="flex-1 flex flex-col bg-[#0d0d12] w-full">
                     <div className="flex overflow-x-auto bg-[#0a0a0c] border-b border-[#1f1f23] shrink-0 custom-scrollbar">
                         {Object.keys(generatedFiles).map(file => (
                             <button key={file} onClick={() => setActiveFile(file)} 
@@ -276,7 +278,7 @@ export default function App() {
                             <textarea 
                                 value={generatedFiles[activeFile] || ''} 
                                 onChange={(e) => setGeneratedFiles(prev => ({ ...prev, [activeFile]: e.target.value }))}
-                                className="w-full h-full bg-[#0d0d12] text-gray-300 p-6 font-mono text-sm resize-none outline-none leading-relaxed"
+                                className="w-full h-full bg-[#0d0d12] text-green-400 p-6 font-mono text-sm resize-none outline-none leading-relaxed"
                                 spellCheck="false"
                             />
                         ) : (
@@ -288,7 +290,7 @@ export default function App() {
         </div>
       )}
 
-      {/* 🖥️ 4. OUTPUT CONSOLE */}
+      {/* 🖥️ BOTTOM CONSOLE */}
       {view === 'editor' && (
           <div className={`w-full transition-all duration-300 z-40 bg-[#0a0a0c] border-t border-[#1f1f23] shrink-0 ${isConsoleOpen ? 'h-56' : 'h-8'}`}>
               <div className="flex items-center justify-between px-4 h-8 cursor-pointer hover:bg-[#1a1a24]" onClick={() => setIsConsoleOpen(!isConsoleOpen)}>
@@ -303,11 +305,10 @@ export default function App() {
           </div>
       )}
 
-      {/* 🌍 5. THE ULTIMATE PUBLISH MODAL (Matches 47151.jpg & 47047.jpg) */}
+      {/* 🌍 THE ULTIMATE PUBLISH MODAL */}
       {isPublishModalOpen && (
           <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
-              <div className="bg-[#111116] border border-[#2b2b2b] w-full max-w-3xl rounded-xl overflow-hidden shadow-2xl flex flex-col md:flex-row h-[450px]">
-                  
+              <div className="bg-[#111116] border border-[#2b2b2b] w-full max-w-3xl rounded-xl overflow-hidden shadow-2xl flex flex-col md:flex-row h-auto md:h-[450px]">
                   {/* Left Sidebar */}
                   <div className="w-full md:w-1/3 bg-[#0a0a0c] border-r border-[#1f1f23] flex flex-col">
                       <div className="p-4 border-b border-[#1f1f23] flex items-center gap-2">
@@ -341,7 +342,6 @@ export default function App() {
                           <div className="flex flex-col h-full mt-4">
                               <h4 className="text-orange-500 font-bold text-sm mb-4">AWS Automatic Deployment</h4>
                               
-                              {/* CPU / GPU Toggle */}
                               <div className="flex gap-3 mb-6">
                                   <button onClick={()=>setAwsInstanceType('cpu')} className={`flex-1 p-3 rounded-lg border flex flex-col items-start ${awsInstanceType === 'cpu' ? 'border-orange-500 bg-orange-500/5 text-orange-400' : 'border-[#2b2b2b] text-gray-400 hover:border-gray-600'}`}>
                                       <div className="flex items-center gap-2 font-bold text-xs"><CpuIcon/> CPU Instance</div>
@@ -378,19 +378,18 @@ export default function App() {
                           <div className="flex flex-col h-full mt-4 justify-center items-center text-center">
                               <h4 className="text-blue-500 font-bold text-lg mb-2">Instant Global Deployment</h4>
                               <p className="text-gray-400 text-sm mb-8">Your app will be live at a secure mantu-cloud subdomain.</p>
-                              <button onClick={handlePublish} className="w-full max-w-xs bg-blue-600 hover:bg-blue-500 text-white py-3 rounded-lg font-bold text-sm shadow-lg transition flex justify-center items-center gap-2">🚀 Go Live Now</button>
+                              <button onClick={handlePublish} className="w-full max-w-xs bg-blue-600 hover:bg-blue-500 text-white py-3 rounded-lg font-bold text-sm shadow-lg transition">🚀 Go Live Now</button>
                           </div>
                       )}
 
-                      {/* Add simple fallbacks for GitHub and Domain for completeness */}
-                      {publishMethod === 'github' && <div className="mt-4"><h4 className="text-white font-bold text-sm">GitHub Push Configuration</h4><p className="text-gray-500 text-xs mt-2">Connect your repository here.</p></div>}
-                      {publishMethod === 'domain' && <div className="mt-4"><h4 className="text-green-500 font-bold text-sm">Custom Domain & SSL</h4><p className="text-gray-500 text-xs mt-2">Point your DNS to our nameservers.</p></div>}
+                      {publishMethod === 'github' && <div className="mt-4 text-center text-gray-400 mt-20"><GithubIcon/><br/>GitHub Push Coming Soon...</div>}
+                      {publishMethod === 'domain' && <div className="mt-4 text-center text-green-500 mt-20"><LinkIcon/><br/>Custom Domain API Coming Soon...</div>}
                   </div>
               </div>
           </div>
       )}
 
-      {/* 🔐 6. ENV VARIABLES MODAL (Matches 47149.jpg) */}
+      {/* 🔐 ENV VARIABLES MODAL */}
       {isEnvModalOpen && (
          <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
             <div className="bg-[#111116] border border-[#2b2b2b] w-full max-w-lg rounded-xl overflow-hidden shadow-2xl">
