@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import AuthModal from './components/AuthModal';
 
 // ==========================================
-// 🎨 ALL ICONS (100% COMPLETE, NO CUTS)
+// 🎨 ALL ICONS (100% COMPLETE)
 // ==========================================
 const MantuLogo = () => <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="url(#blue-grad)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><defs><linearGradient id="blue-grad" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stopColor="#3b82f6" /><stop offset="100%" stopColor="#8b5cf6" /></linearGradient></defs><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>;
 const SparkleIcon = () => <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="m12 3-1.9 5.8a2 2 0 0 1-1.3 1.3L3 12l5.8 1.9a2 2 0 0 1 1.3 1.3L12 21l1.9-5.8a2 2 0 0 1 1.3-1.3L21 12l-5.8-1.9a2 2 0 0 1-1.3-1.3L12 3Z"/></svg>;
@@ -60,14 +60,20 @@ export default function App() {
   const [isListening, setIsListening] = useState(false);
   const recognitionRef = useRef(null);
 
-  // 🌍 Modals
+  // 🌍 Modals & Deployment States
   const [isPublishModalOpen, setIsPublishModalOpen] = useState(false);
-  const [publishMethod, setPublishMethod] = useState('aws'); 
+  const [publishMethod, setPublishMethod] = useState('cloud'); 
   const [awsInstanceType, setAwsInstanceType] = useState('cpu'); 
   const [awsTargetIp, setAwsTargetIp] = useState(""); 
   const [awsAuthKey, setAwsAuthKey] = useState(""); 
+  
+  // 🐙 GitHub States
+  const [githubToken, setGithubToken] = useState("");
+  const [repoName, setRepoName] = useState("");
+  
   const [isEnvModalOpen, setIsEnvModalOpen] = useState(false);
   const [projectEnv, setProjectEnv] = useState([{ key: '', value: '' }]);
+  const [deployedUrl, setDeployedUrl] = useState(null); 
 
   const codeTextareaRef = useRef(null);
   const lineNumbersRef = useRef(null);
@@ -178,7 +184,7 @@ export default function App() {
       if (!text.trim()) return;
       if (!currentUser) return setIsAuthModalOpen(true); 
 
-      setIsGenerating(true); setView('editor'); setActiveTab('code'); setIsConsoleOpen(true);
+      setIsGenerating(true); setView('editor'); setActiveTab('code'); setIsConsoleOpen(true); setDeployedUrl(null);
       
       if (!isFollowUp) setGeneratedFiles({});
       const newLogs = [...actionLogs, { id: Date.now(), type: 'user', text: text }];
@@ -254,7 +260,7 @@ export default function App() {
   };
 
   // ==========================================
-  // 🌍 PUBLISH LOGIC
+  // 🌍 PUBLISH LOGIC (CLOUD, AWS, GITHUB)
   // ==========================================
   const handlePemUpload = (e) => {
     const file = e.target.files[0];
@@ -266,17 +272,43 @@ export default function App() {
 
   const handlePublish = async () => {
     if(!currentUser) return setIsAuthModalOpen(true);
-    setIsPublishModalOpen(false); setIsConsoleOpen(true);
+
+    // Validation
+    if (publishMethod === 'aws' && (!awsTargetIp || !awsAuthKey)) {
+        return alert("Please provide AWS Target IP and Auth Key.");
+    }
+    if (publishMethod === 'github' && (!githubToken || !repoName)) {
+        return alert("Please provide GitHub Token and Repository Name.");
+    }
+
+    setIsPublishModalOpen(false); 
+    setIsConsoleOpen(true); 
+    setDeployedUrl(null);
     setTerminalOutput(`> 🚀 Initiating Deployment via ${publishMethod.toUpperCase()} API...`);
+    
     try {
-        const payload = publishMethod === 'aws' ? { targetIp: awsTargetIp, authKey: awsAuthKey } : {};
+        let payload = {};
+        if (publishMethod === 'aws') {
+            payload = { targetIp: awsTargetIp, authKey: awsAuthKey };
+        } else if (publishMethod === 'github') {
+            payload = { githubToken: githubToken, repoName: repoName };
+        }
+        
         const res = await fetch(`${BACKEND_URL}/api/publish-${publishMethod}`, {
             method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${localStorage.getItem('mantu_token')}` },
             body: JSON.stringify(payload)
         });
         const data = await res.json();
-        if(data.success) setTerminalOutput(prev => prev + `\n> ✅ Success: ${data.message || 'Deployed!'}`);
-        else setTerminalOutput(prev => prev + `\n> ⚠️ Note: ${data.message || data.error}`);
+        
+        if(data.success) {
+            setTerminalOutput(prev => prev + `\n> ✅ Success: ${data.message}`);
+            if (data.url) {
+                setDeployedUrl(data.url); 
+                setTerminalOutput(prev => prev + `\n> 🔗 URL: ${data.url}`);
+            }
+        } else {
+            setTerminalOutput(prev => prev + `\n> ⚠️ Error: ${data.error}`);
+        }
     } catch(e) { setTerminalOutput(prev => prev + `\n> ❌ Network Error.`); }
   };
 
@@ -296,7 +328,7 @@ export default function App() {
 
       {/* 🚀 HACKER TICKER */}
       <div className="w-full bg-blue-900/20 border-b border-blue-900/50 text-blue-400 text-[10px] font-mono py-1.5 flex overflow-hidden whitespace-nowrap shrink-0 z-30">
-           <div className="animate-marquee inline-block">🚀 User_92 deployed Neovid SaaS in 12s... &nbsp; | &nbsp; ⚡ Mantu Cloud processing 1.2M requests... &nbsp; | &nbsp; 🧠 Llama-3 Enterprise Engine Active... &nbsp; | &nbsp; 🌍 Connected to AWS us-east-1...</div>
+           <div className="animate-marquee inline-block">🚀 User_92 pushed to GitHub in 2s... &nbsp; | &nbsp; ⚡ Mantu Cloud routing backend to Vercel... &nbsp; | &nbsp; 🧠 Llama-3 Enterprise Engine Active... &nbsp; | &nbsp; 🌍 Connected to AWS us-east-1...</div>
       </div>
 
       {/* 🔝 NAVBAR */}
@@ -375,6 +407,9 @@ export default function App() {
                     <button onClick={()=>setActiveTab('code')} className={`px-4 py-1 text-xs font-bold rounded flex items-center gap-2 ${activeTab === 'code' ? 'bg-[#2b2b36] text-white shadow' : 'text-gray-400 hover:text-white transition'}`}><CodeIcon/> View Code</button>
                 </div>
                 <div className="flex gap-2 shrink-0">
+                    {deployedUrl && (
+                        <a href={deployedUrl} target="_blank" rel="noreferrer" className="px-3 py-1.5 text-xs font-bold bg-green-500/10 text-green-400 border border-green-500/50 hover:bg-green-500/20 rounded flex items-center gap-2 transition"><LinkIcon/> Open App</a>
+                    )}
                     <button onClick={saveCurrentProject} className="px-3 py-1.5 text-xs font-bold bg-[#1a1a24] text-blue-400 border border-blue-900/50 hover:bg-blue-900/20 rounded flex items-center gap-2 transition"><CloudIcon/> Save to Cloud</button>
                     <button onClick={() => setIsConsoleOpen(!isConsoleOpen)} className="px-3 py-1.5 text-xs font-bold bg-[#1a1a24] text-gray-300 hover:bg-[#2b2b36] rounded flex items-center gap-2 transition"><TerminalIcon/> _Console</button>
                     <button onClick={() => setIsEnvModalOpen(true)} className="px-3 py-1.5 text-xs font-bold bg-yellow-500/10 text-yellow-500 border border-yellow-500/20 hover:bg-yellow-500/20 rounded flex items-center gap-2 transition"><LockIcon/> Env Keys</button>
@@ -431,19 +466,31 @@ export default function App() {
           </div>
       )}
 
-      {/* 🌍 PUBLISH MODAL */}
+      {/* 🌍 PUBLISH MODAL (WITH CLOUD, AWS, GITHUB) */}
       {isPublishModalOpen && (
           <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
               <div className="bg-[#111116] border border-[#2b2b2b] w-full max-w-3xl rounded-xl overflow-hidden shadow-2xl flex flex-col md:flex-row min-h-[400px]">
                   <div className="w-full md:w-1/3 bg-[#0a0a0c] border-r border-[#1f1f23] flex flex-col">
                       <div className="p-4 border-b border-[#1f1f23] flex items-center gap-2"><CloudIcon /> <h3 className="font-bold text-sm">Publish Your App</h3></div>
                       <div className="p-2 flex flex-col gap-1 flex-1">
-                          <button onClick={() => setPublishMethod('cloud')} className={`p-3 text-left rounded-lg transition ${publishMethod === 'cloud' ? 'bg-[#1a40af]/20 border border-blue-600 text-blue-500' : 'text-gray-400 hover:bg-[#1a1a24]'}`}><div className="font-bold text-xs flex items-center gap-2"><CloudIcon/> Mantu Cloud</div><div className="text-[10px] mt-1 opacity-70">Free 1-Click Subdomain</div></button>
+                          <button onClick={() => setPublishMethod('cloud')} className={`p-3 text-left rounded-lg transition ${publishMethod === 'cloud' ? 'bg-[#1a40af]/20 border border-blue-600 text-blue-500' : 'text-gray-400 hover:bg-[#1a1a24]'}`}><div className="font-bold text-xs flex items-center gap-2"><CloudIcon/> Mantu Cloud</div><div className="text-[10px] mt-1 opacity-70">Netlify (UI) + Vercel (API)</div></button>
                           <button onClick={() => setPublishMethod('aws')} className={`p-3 text-left rounded-lg transition ${publishMethod === 'aws' ? 'bg-orange-500/10 border border-orange-500/50 text-orange-500' : 'text-gray-400 hover:bg-[#1a1a24]'}`}><div className="font-bold text-xs flex items-center gap-2"><ServerIcon/> AWS EC2 Auto</div><div className="text-[10px] mt-1 opacity-70">Deploy to your own server</div></button>
+                          <button onClick={() => setPublishMethod('github')} className={`p-3 text-left rounded-lg transition ${publishMethod === 'github' ? 'bg-gray-800 border border-gray-600 text-white' : 'text-gray-400 hover:bg-[#1a1a24]'}`}><div className="font-bold text-xs flex items-center gap-2"><GithubIcon/> GitHub Push</div><div className="text-[10px] mt-1 opacity-70">Push code to repository</div></button>
                       </div>
                   </div>
                   <div className="w-full md:w-2/3 bg-[#111116] p-6 flex flex-col relative">
                       <button onClick={() => setIsPublishModalOpen(false)} className="absolute top-4 right-4 text-gray-500 hover:text-white transition"><CloseIcon/></button>
+                      
+                      {/* MANTU CLOUD UI */}
+                      {publishMethod === 'cloud' && (
+                          <div className="flex flex-col h-full mt-4 justify-center items-center text-center">
+                              <h4 className="text-blue-500 font-bold text-lg mb-2">Mantu Cloud Deployment</h4>
+                              <p className="text-gray-400 text-sm mb-8">Deploy Frontend to Netlify and route Backend to Vercel instantly.</p>
+                              <button onClick={handlePublish} className="w-full max-w-xs bg-blue-600 hover:bg-blue-500 text-white py-3 rounded-lg font-bold text-sm transition flex justify-center items-center gap-2"><CloudIcon/> Deploy to Mantu Cloud</button>
+                          </div>
+                      )}
+
+                      {/* AWS EC2 UI */}
                       {publishMethod === 'aws' && (
                           <div className="flex flex-col h-full mt-4">
                               <h4 className="text-orange-500 font-bold text-sm mb-4">AWS Automatic Deployment</h4>
@@ -453,11 +500,21 @@ export default function App() {
                               <button onClick={handlePublish} className="mt-auto w-full bg-orange-600 hover:bg-orange-500 text-white py-3 rounded-lg font-bold text-sm shadow-lg transition">Deploy to AWS {(awsInstanceType || 'cpu').toUpperCase()}</button>
                           </div>
                       )}
-                      {publishMethod !== 'aws' && (
-                          <div className="flex flex-col h-full mt-4 justify-center items-center text-center">
-                              <h4 className="text-blue-500 font-bold text-lg mb-2">API Configuration</h4>
-                              <p className="text-gray-400 text-sm mb-8">This module will connect to your Mantu Cloud Engine.</p>
-                              <button onClick={handlePublish} className="w-full max-w-xs bg-blue-600 hover:bg-blue-500 text-white py-3 rounded-lg font-bold text-sm transition flex justify-center items-center gap-2"><CloudIcon/> Trigger Process</button>
+
+                      {/* GITHUB UI */}
+                      {publishMethod === 'github' && (
+                          <div className="flex flex-col h-full mt-4">
+                              <h4 className="text-gray-200 font-bold text-sm mb-4">GitHub Repository Push</h4>
+                              <div className="mb-4">
+                                  <label className="text-xs text-gray-400 font-bold mb-1.5 block">GitHub Personal Access Token</label>
+                                  <input type="password" value={githubToken} onChange={(e) => setGithubToken(e.target.value)} placeholder="ghp_xxxxxxxxxxxxxxxxxxxxxxxx" className="w-full bg-[#0A0A0E] border border-[#2b2b2b] rounded-lg p-2.5 text-sm text-white outline-none focus:border-gray-500 transition" />
+                                  <p className="text-[10px] text-gray-500 mt-1">Requires 'repo' scope.</p>
+                              </div>
+                              <div className="mb-6">
+                                  <label className="text-xs text-gray-400 font-bold mb-1.5 block">Repository Name</label>
+                                  <input type="text" value={repoName} onChange={(e) => setRepoName(e.target.value)} placeholder="my-mantu-startup" className="w-full bg-[#0A0A0E] border border-[#2b2b2b] rounded-lg p-2.5 text-sm text-white outline-none focus:border-gray-500 transition" />
+                              </div>
+                              <button onClick={handlePublish} className="mt-auto w-full bg-gray-700 hover:bg-gray-600 text-white py-3 rounded-lg font-bold text-sm shadow-lg transition flex items-center justify-center gap-2"><GithubIcon/> Push Code to GitHub</button>
                           </div>
                       )}
                   </div>
