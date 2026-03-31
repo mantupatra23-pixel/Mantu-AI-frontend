@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import AuthModal from './components/AuthModal';
 
 // ==========================================
-// 🎨 ALL ICONS (Minified for performance)
+// 🎨 ALL ICONS (100% COMPLETE, NO CUTS)
 // ==========================================
 const MantuLogo = () => <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="url(#blue-grad)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><defs><linearGradient id="blue-grad" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stopColor="#3b82f6" /><stop offset="100%" stopColor="#8b5cf6" /></linearGradient></defs><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>;
 const SparkleIcon = () => <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="m12 3-1.9 5.8a2 2 0 0 1-1.3 1.3L3 12l5.8 1.9a2 2 0 0 1 1.3 1.3L12 21l1.9-5.8a2 2 0 0 1 1.3-1.3L21 12l-5.8-1.9a2 2 0 0 1-1.3-1.3L12 3Z"/></svg>;
@@ -18,25 +18,32 @@ const GithubIcon = () => <svg width="16" height="16" viewBox="0 0 24 24" fill="n
 const LinkIcon = () => <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>;
 const CpuIcon = () => <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect width="16" height="16" x="4" y="4" rx="2" ry="2"/><rect width="6" height="6" x="9" y="9" rx="1" ry="1"/><path d="M9 4v-2"/><path d="M15 4v-2"/><path d="M9 22v2"/><path d="M15 22v2"/><path d="M20 9h2"/><path d="M20 14h2"/><path d="M2 9h2"/><path d="M2 14h2"/></svg>;
 const LockIcon = () => <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>;
-const SettingsIcon = () => <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1Z"/></svg>;
-const SendIcon = () => <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>;
 const UserIcon = () => <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>;
+const SendIcon = () => <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>;
 
-// Global CSS for Marquee & Scrollbar
-const globalStyles = `@keyframes marquee { 0% { transform: translateX(100vw); } 100% { transform: translateX(-100%); } } .animate-marquee { animation: marquee 30s linear infinite; display: inline-block; padding-left: 100%; } .custom-scrollbar::-webkit-scrollbar { width: 6px; height: 6px; } .custom-scrollbar::-webkit-scrollbar-track { background: transparent; } .custom-scrollbar::-webkit-scrollbar-thumb { background: #2b2b36; border-radius: 4px; } .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #3b3b46; }`;
+// ==========================================
+// 🚀 GLOBAL CSS
+// ==========================================
+const globalStyles = `
+@keyframes marquee { 0% { transform: translateX(100vw); } 100% { transform: translateX(-100%); } } 
+.animate-marquee { animation: marquee 30s linear infinite; display: inline-block; padding-left: 100%; } 
+.custom-scrollbar::-webkit-scrollbar { width: 6px; height: 6px; } 
+.custom-scrollbar::-webkit-scrollbar-track { background: transparent; } 
+.custom-scrollbar::-webkit-scrollbar-thumb { background: #2b2b36; border-radius: 4px; } 
+.custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #3b3b46; }
+`;
 
 // ==========================================
 // 🚀 MAIN APP COMPONENT
 // ==========================================
 export default function App() {
-  // ⚠️ CHANGE THIS TO YOUR RENDER URL
-  const BACKEND_URL = "https://visora-code.onrender.com"; 
+  const BACKEND_URL = "https://visora-code.onrender.com"; // Your Render URL
   
-  // Auth States
+  // 🔐 Auth States
   const [currentUser, setCurrentUser] = useState(null);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
 
-  // Core App States
+  // 🧠 Core App States
   const [projects, setProjects] = useState([]);
   const [prompt, setPrompt] = useState('');
   const [followUpPrompt, setFollowUpPrompt] = useState(''); 
@@ -49,35 +56,76 @@ export default function App() {
   const [terminalOutput, setTerminalOutput] = useState("> System Ready. Welcome to Mantu OS.");
   const [isConsoleOpen, setIsConsoleOpen] = useState(false);
   
-  // Voice & UI
+  // 🎤 Voice & UI Refs
   const [isListening, setIsListening] = useState(false);
   const recognitionRef = useRef(null);
 
-  // Modals
+  // 🌍 Modals
   const [isPublishModalOpen, setIsPublishModalOpen] = useState(false);
   const [publishMethod, setPublishMethod] = useState('aws'); 
   const [awsInstanceType, setAwsInstanceType] = useState('cpu'); 
   const [awsTargetIp, setAwsTargetIp] = useState(""); 
   const [awsAuthKey, setAwsAuthKey] = useState(""); 
-  const [gitRepoName, setGitRepoName] = useState("");
-  const [gitToken, setGitToken] = useState("");
-  const [customDomain, setCustomDomain] = useState("");
   const [isEnvModalOpen, setIsEnvModalOpen] = useState(false);
   const [projectEnv, setProjectEnv] = useState([{ key: '', value: '' }]);
 
   const codeTextareaRef = useRef(null);
   const lineNumbersRef = useRef(null);
 
-  // 🔄 Check Login on Mount
+  // ==========================================
+  // ☁️ CLOUD SYNC LOGIC
+  // ==========================================
+  const fetchCloudProjects = async (userId, token) => {
+      try {
+          const res = await fetch(`${BACKEND_URL}/api/get-projects?userId=${userId}`, {
+              headers: { 'Authorization': `Bearer ${token}` }
+          });
+          const data = await res.json();
+          if (data.success) {
+              setProjects(data.data);
+          }
+      } catch (err) { console.error("Cloud Sync Error:", err); }
+  };
+
   useEffect(() => {
       const storedUser = localStorage.getItem('mantu_user');
-      if (storedUser) setCurrentUser(JSON.parse(storedUser));
-      
-      try {
-          const savedProjects = JSON.parse(localStorage.getItem('mantuProjects'));
-          if (savedProjects) setProjects(savedProjects);
-      } catch(e) {}
+      const token = localStorage.getItem('mantu_token');
+      if (storedUser && token) {
+          const userObj = JSON.parse(storedUser);
+          setCurrentUser(userObj);
+          fetchCloudProjects(userObj.id, token);
+      }
   }, []);
+
+  const saveCurrentProject = async () => {
+      if (!currentUser) return setIsAuthModalOpen(true);
+      if (Object.keys(generatedFiles).length === 0) return alert("No code generated yet!");
+      
+      setTerminalOutput(prev => prev + `\n> ⏳ Syncing project to Mantu Cloud DB...`);
+      setIsConsoleOpen(true);
+
+      try {
+          const res = await fetch(`${BACKEND_URL}/api/save-project`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${localStorage.getItem('mantu_token')}` },
+              body: JSON.stringify({
+                  userId: currentUser.id,
+                  title: prompt.substring(0, 30) || 'Untitled App',
+                  files: generatedFiles
+              })
+          });
+
+          const data = await res.json();
+          if (data.success) {
+              setTerminalOutput(prev => prev + `\n> 💾 SUCCESS: Project securely saved to Cloud Database!`);
+              fetchCloudProjects(currentUser.id, localStorage.getItem('mantu_token'));
+          } else {
+              setTerminalOutput(prev => prev + `\n> ❌ Save Error: ${data.error}`);
+          }
+      } catch (err) {
+          setTerminalOutput(prev => prev + `\n> ❌ Cloud Network Error while saving.`);
+      }
+  };
 
   const handleAuthSuccess = (token, user) => {
       localStorage.setItem('mantu_token', token);
@@ -86,37 +134,29 @@ export default function App() {
       setIsAuthModalOpen(false);
       setTerminalOutput(prev => prev + `\n> 🔓 Access Granted. Welcome, ${user.name}.`);
       setIsConsoleOpen(true);
+      fetchCloudProjects(user.id, token);
   };
 
   const handleLogout = () => {
       localStorage.removeItem('mantu_token');
       localStorage.removeItem('mantu_user');
       setCurrentUser(null);
+      setProjects([]);
       setView('home');
       setTerminalOutput("> Logged out successfully.");
   };
 
-  const saveCurrentProject = async () => {
-      if (!currentUser) return setIsAuthModalOpen(true);
-      if (Object.keys(generatedFiles).length === 0) return alert("No code generated yet!");
-      
-      const newProject = { id: Date.now(), title: prompt.substring(0, 30) || 'Untitled App', files: generatedFiles, logs: actionLogs };
-      const updatedProjects = [newProject, ...projects];
-      setProjects(updatedProjects);
-      localStorage.setItem('mantuProjects', JSON.stringify(updatedProjects));
-      setTerminalOutput(prev => prev + `\n> 💾 SUCCESS: Project saved!`);
-      setIsConsoleOpen(true);
-  };
-
   const loadProject = (proj) => {
       setGeneratedFiles(proj.files); 
-      setActionLogs(proj.logs || []); 
       setPrompt(proj.title);
       setActiveFile(Object.keys(proj.files)[0] || "");
       setView('editor'); 
-      setTerminalOutput(`> 📂 Loaded Project: ${proj.title}`);
+      setTerminalOutput(`> 📂 Downloaded Project from Cloud DB: ${proj.title}`);
   };
 
+  // ==========================================
+  // 🚀 ENGINE & BUILD LOGIC
+  // ==========================================
   const toggleListening = (targetInput) => {
       if (isListening) { recognitionRef.current?.stop(); setIsListening(false); return; }
       const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -136,7 +176,7 @@ export default function App() {
 
   const triggerBuild = async (text, isFollowUp = false) => {
       if (!text.trim()) return;
-      if (!currentUser) return setIsAuthModalOpen(true); // 🛑 MUST LOGIN TO GENERATE
+      if (!currentUser) return setIsAuthModalOpen(true); 
 
       setIsGenerating(true); setView('editor'); setActiveTab('code'); setIsConsoleOpen(true);
       
@@ -213,6 +253,9 @@ export default function App() {
       return `<!DOCTYPE html><html><head>${reactImports}</head><body>${htmlFile}${executeReact}</body></html>`;
   };
 
+  // ==========================================
+  // 🌍 PUBLISH LOGIC
+  // ==========================================
   const handlePemUpload = (e) => {
     const file = e.target.files[0];
     if (!file) return;
@@ -241,6 +284,9 @@ export default function App() {
   const lines = Array.from({length: Math.max(activeCode.split('\n').length, 1)}, (_, i) => i + 1);
   const handleCodeScroll = (e) => { if (lineNumbersRef.current) lineNumbersRef.current.scrollTop = e.target.scrollTop; };
 
+  // ==========================================
+  // 🎨 RENDER UI
+  // ==========================================
   return (
     <div className="h-[100dvh] w-full flex flex-col font-sans overflow-hidden bg-[#050505] text-white relative">
       <style dangerouslySetInnerHTML={{__html: globalStyles}} />
@@ -301,14 +347,22 @@ export default function App() {
                 ))}
             </div>
 
+            {/* ☁️ CLOUD PROJECTS LIST */}
             {projects.length > 0 && currentUser && (
                 <div className="mt-12 mb-10 z-10 flex flex-col items-center w-full max-w-xl">
-                    <div className="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-3 flex items-center gap-2"><CodeIcon/> Continue Working</div>
-                    <button onClick={() => loadProject(projects[0])} className="flex items-center gap-4 bg-[#0d0d12]/80 backdrop-blur-md border border-[#1f1f23] hover:border-blue-500/50 p-4 rounded-xl transition-all w-full text-left group">
-                        <div className="bg-blue-500/20 text-blue-500 p-3 rounded-lg group-hover:scale-110 transition"><CodeIcon/></div>
-                        <div className="flex-1 overflow-hidden"><div className="text-sm font-bold text-white truncate">{projects[0].title}</div><div className="text-xs text-gray-500 mt-1">{Object.keys(projects[0].files).length} files generated</div></div>
-                        <div className="text-gray-500 group-hover:text-white transition">Resume →</div>
-                    </button>
+                    <div className="text-[10px] font-bold text-blue-400 uppercase tracking-widest mb-3 flex items-center gap-2"><CloudIcon/> Your Cloud Projects</div>
+                    <div className="w-full flex flex-col gap-3">
+                        {projects.map((proj) => (
+                            <button key={proj._id} onClick={() => loadProject(proj)} className="flex items-center gap-4 bg-[#0d0d12]/80 backdrop-blur-md border border-[#1f1f23] hover:border-blue-500/50 p-4 rounded-xl transition-all w-full text-left group">
+                                <div className="bg-blue-500/20 text-blue-500 p-3 rounded-lg group-hover:scale-110 transition"><CodeIcon/></div>
+                                <div className="flex-1 overflow-hidden">
+                                    <div className="text-sm font-bold text-white truncate">{proj.title}</div>
+                                    <div className="text-xs text-gray-500 mt-1">{Object.keys(proj.files).length} files • Synced to Cloud</div>
+                                </div>
+                                <div className="text-gray-500 group-hover:text-white transition">Resume →</div>
+                            </button>
+                        ))}
+                    </div>
                 </div>
             )}
         </div>
@@ -321,7 +375,7 @@ export default function App() {
                     <button onClick={()=>setActiveTab('code')} className={`px-4 py-1 text-xs font-bold rounded flex items-center gap-2 ${activeTab === 'code' ? 'bg-[#2b2b36] text-white shadow' : 'text-gray-400 hover:text-white transition'}`}><CodeIcon/> View Code</button>
                 </div>
                 <div className="flex gap-2 shrink-0">
-                    <button onClick={saveCurrentProject} className="px-3 py-1.5 text-xs font-bold bg-[#1a1a24] text-blue-400 border border-blue-900/50 hover:bg-blue-900/20 rounded flex items-center gap-2 transition"><SparkleIcon/> Save Project</button>
+                    <button onClick={saveCurrentProject} className="px-3 py-1.5 text-xs font-bold bg-[#1a1a24] text-blue-400 border border-blue-900/50 hover:bg-blue-900/20 rounded flex items-center gap-2 transition"><CloudIcon/> Save to Cloud</button>
                     <button onClick={() => setIsConsoleOpen(!isConsoleOpen)} className="px-3 py-1.5 text-xs font-bold bg-[#1a1a24] text-gray-300 hover:bg-[#2b2b36] rounded flex items-center gap-2 transition"><TerminalIcon/> _Console</button>
                     <button onClick={() => setIsEnvModalOpen(true)} className="px-3 py-1.5 text-xs font-bold bg-yellow-500/10 text-yellow-500 border border-yellow-500/20 hover:bg-yellow-500/20 rounded flex items-center gap-2 transition"><LockIcon/> Env Keys</button>
                     <button onClick={() => setIsPublishModalOpen(true)} className="px-4 py-1.5 text-xs font-bold bg-blue-600 hover:bg-blue-500 text-white rounded flex items-center gap-2 shadow transition"><CloudIcon/> Publish App</button>
@@ -386,8 +440,6 @@ export default function App() {
                       <div className="p-2 flex flex-col gap-1 flex-1">
                           <button onClick={() => setPublishMethod('cloud')} className={`p-3 text-left rounded-lg transition ${publishMethod === 'cloud' ? 'bg-[#1a40af]/20 border border-blue-600 text-blue-500' : 'text-gray-400 hover:bg-[#1a1a24]'}`}><div className="font-bold text-xs flex items-center gap-2"><CloudIcon/> Mantu Cloud</div><div className="text-[10px] mt-1 opacity-70">Free 1-Click Subdomain</div></button>
                           <button onClick={() => setPublishMethod('aws')} className={`p-3 text-left rounded-lg transition ${publishMethod === 'aws' ? 'bg-orange-500/10 border border-orange-500/50 text-orange-500' : 'text-gray-400 hover:bg-[#1a1a24]'}`}><div className="font-bold text-xs flex items-center gap-2"><ServerIcon/> AWS EC2 Auto</div><div className="text-[10px] mt-1 opacity-70">Deploy to your own server</div></button>
-                          <button onClick={() => setPublishMethod('github')} className={`p-3 text-left rounded-lg transition ${publishMethod === 'github' ? 'bg-gray-800 border border-gray-600 text-white' : 'text-gray-400 hover:bg-[#1a1a24]'}`}><div className="font-bold text-xs flex items-center gap-2"><GithubIcon/> GitHub Push</div><div className="text-[10px] mt-1 opacity-70">Push code to repository</div></button>
-                          <button onClick={() => setPublishMethod('domain')} className={`p-3 text-left rounded-lg transition ${publishMethod === 'domain' ? 'bg-green-500/10 border border-green-500/50 text-green-500' : 'text-gray-400 hover:bg-[#1a1a24]'}`}><div className="font-bold text-xs flex items-center gap-2"><LinkIcon/> Custom Domain</div><div className="text-[10px] mt-1 opacity-70">Point DNS to Server</div></button>
                       </div>
                   </div>
                   <div className="w-full md:w-2/3 bg-[#111116] p-6 flex flex-col relative">
