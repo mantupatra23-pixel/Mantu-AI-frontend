@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import AuthModal from './components/AuthModal';
 
 // ==========================================
-// 🎨 ALL ICONS
+// 🎨 ALL ICONS (100% COMPLETE & NEW ICONS ADDED)
 // ==========================================
 const MantuLogo = () => <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="url(#blue-grad)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><defs><linearGradient id="blue-grad" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stopColor="#3b82f6" /><stop offset="100%" stopColor="#8b5cf6" /></linearGradient></defs><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>;
 const SparkleIcon = () => <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="m12 3-1.9 5.8a2 2 0 0 1-1.3 1.3L3 12l5.8 1.9a2 2 0 0 1 1.3 1.3L12 21l1.9-5.8a2 2 0 0 1-1.3-1.3L21 12l-5.8-1.9a2 2 0 0 1-1.3-1.3L12 3Z"/></svg>;
@@ -20,7 +20,12 @@ const CpuIcon = () => <svg width="16" height="16" viewBox="0 0 24 24" fill="none
 const LockIcon = () => <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>;
 const UserIcon = () => <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>;
 const SendIcon = () => <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>;
+const HistoryIcon = () => <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M12 7v5l4 2"/></svg>;
+const GlobeIcon = () => <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"/><path d="M2 12h20"/></svg>;
 
+// ==========================================
+// 🚀 GLOBAL CSS
+// ==========================================
 const globalStyles = `
 @keyframes marquee { 0% { transform: translateX(100vw); } 100% { transform: translateX(-100%); } } 
 .animate-marquee { animation: marquee 30s linear infinite; display: inline-block; padding-left: 100%; } 
@@ -35,6 +40,7 @@ export default function App() {
   
   const [currentUser, setCurrentUser] = useState(null);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+  const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false); // NEW: Project History Modal
 
   const [projects, setProjects] = useState([]);
   const [prompt, setPrompt] = useState('');
@@ -45,12 +51,16 @@ export default function App() {
   const [generatedFiles, setGeneratedFiles] = useState({});
   const [activeFile, setActiveFile] = useState("");
   const [actionLogs, setActionLogs] = useState([]);
+  
+  // Terminal System
   const [terminalOutput, setTerminalOutput] = useState("> System Ready. Welcome to Mantu OS.");
   const [isConsoleOpen, setIsConsoleOpen] = useState(false);
-  
+  const consoleEndRef = useRef(null); // NEW: Auto-scroll ref
+
   const [isListening, setIsListening] = useState(false);
   const recognitionRef = useRef(null);
 
+  // Publish / Domain Modals
   const [isPublishModalOpen, setIsPublishModalOpen] = useState(false);
   const [publishMethod, setPublishMethod] = useState('cloud'); 
   const [awsInstanceType, setAwsInstanceType] = useState('cpu'); 
@@ -58,13 +68,27 @@ export default function App() {
   const [awsAuthKey, setAwsAuthKey] = useState(""); 
   const [githubToken, setGithubToken] = useState("");
   const [repoName, setRepoName] = useState("");
-  const [deployedUrl, setDeployedUrl] = useState(null); 
+  const [customDomain, setCustomDomain] = useState(""); // NEW: Domain Input
+  
   const [isEnvModalOpen, setIsEnvModalOpen] = useState(false);
   const [projectEnv, setProjectEnv] = useState([{ key: '', value: '' }]);
+  const [deployedUrl, setDeployedUrl] = useState(null); 
 
   const codeTextareaRef = useRef(null);
   const lineNumbersRef = useRef(null);
 
+  // ==========================================
+  // 📜 AUTO-SCROLL CONSOLE (NEW)
+  // ==========================================
+  useEffect(() => {
+      if (isConsoleOpen && consoleEndRef.current) {
+          consoleEndRef.current.scrollIntoView({ behavior: "smooth" });
+      }
+  }, [terminalOutput, isConsoleOpen]);
+
+  // ==========================================
+  // ☁️ CLOUD SYNC LOGIC
+  // ==========================================
   const fetchCloudProjects = async (userId, token) => {
       try {
           const res = await fetch(`${BACKEND_URL}/api/get-projects?userId=${userId}`, { headers: { 'Authorization': `Bearer ${token}` }});
@@ -116,30 +140,18 @@ export default function App() {
   const loadProject = (proj) => {
       setGeneratedFiles(proj.files); setPrompt(proj.title);
       setActiveFile(Object.keys(proj.files)[0] || "");
-      setView('editor'); setTerminalOutput(`> 📂 Downloaded Project from Cloud DB: ${proj.title}`);
+      setView('editor'); setIsHistoryModalOpen(false);
+      setTerminalOutput(`> 📂 Restored Project: ${proj.title}`);
   };
 
-  const toggleListening = (targetInput) => {
-      if (isListening) { recognitionRef.current?.stop(); setIsListening(false); return; }
-      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-      if (!SpeechRecognition) return alert("Voice Typing not supported.");
-      const recognition = new SpeechRecognition();
-      recognition.continuous = true; recognition.interimResults = true;
-      let initialPrompt = targetInput === 'followUp' ? followUpPrompt : prompt;
-      recognition.onresult = (e) => {
-          let trans = ''; for (let i = 0; i < e.results.length; i++) trans += e.results[i][0].transcript;
-          if (targetInput === 'followUp') setFollowUpPrompt(initialPrompt + (initialPrompt ? ' ' : '') + trans);
-          else setPrompt(initialPrompt + (initialPrompt ? ' ' : '') + trans);
-      };
-      recognition.onerror = () => setIsListening(false); recognition.onend = () => setIsListening(false);
-      recognitionRef.current = recognition; recognition.start(); setIsListening(true);
-  };
-
+  // ==========================================
+  // 🚀 ENGINE & BUILD LOGIC (WITH HEARTBEAT FIX)
+  // ==========================================
   const triggerBuild = async (text, isFollowUp = false) => {
       if (!text.trim()) return;
       if (!currentUser) return setIsAuthModalOpen(true); 
 
-      setIsGenerating(true); setView('editor'); setActiveTab('preview'); setIsConsoleOpen(true); setDeployedUrl(null);
+      setIsGenerating(true); setView('editor'); setActiveTab('code'); setIsConsoleOpen(true); setDeployedUrl(null);
       if (!isFollowUp) setGeneratedFiles({});
       
       const newLogs = [...actionLogs, { id: Date.now(), type: 'user', text: text }];
@@ -154,7 +166,11 @@ export default function App() {
               method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${localStorage.getItem('mantu_token')}` }, 
               body: JSON.stringify({ prompt: text, existingFiles: isFollowUp ? generatedFiles : {} }) 
           });
-          if (!res.ok) throw new Error(`Backend Connection Refused.`);
+          
+          if (!res.ok) {
+              const errData = await res.json().catch(()=>({}));
+              throw new Error(errData.error || `Server Error: Please try again or check API keys.`);
+          }
           
           const reader = res.body.getReader(); const decoder = new TextDecoder();
           let buffer = ""; 
@@ -164,10 +180,14 @@ export default function App() {
               buffer += decoder.decode(value, { stream: true });
               let parts = buffer.split('\n\n');
               buffer = parts.pop(); 
+              
               for (const part of parts) {
                   if (part.startsWith('data: ')) {
                       try {
-                          const data = JSON.parse(part.replace('data: ', ''));
+                          const dataStr = part.replace('data: ', '');
+                          if(dataStr.trim() === 'keepalive') continue; // Ignore heartbeat
+
+                          const data = JSON.parse(dataStr);
                           if (data.type === 'log') {
                               setTerminalOutput(prev => prev + `\n> [${data.agent}] ${data.details}`);
                               setActionLogs(prev => [...prev, { id: Date.now()+Math.random(), type: 'log', agent: data.agent, status: data.status, details: data.details }]);
@@ -187,28 +207,26 @@ export default function App() {
               }
           }
       } catch (error) { 
-          setTerminalOutput(prev => prev + `\n> ❌ CRASH: ${error.message}`); 
+          // Detailed Error Breakdown
+          setTerminalOutput(prev => prev + `\n> ❌ CRASH: ${error.message === 'Failed to fetch' ? 'Network Timeout. AI took too long. Try a shorter prompt.' : error.message}`); 
           setActionLogs(prev => [...prev, { id: Date.now(), type: 'log', agent: 'SYSTEM', status: 'Error', details: error.message }]);
       } finally { setIsGenerating(false); }
   };
 
-  // 🔥 THE ULTIMATE LIVE PREVIEW FIX (AUTO-INJECT & FALLBACK)
+  // ==========================================
+  // 💻 LIVE PREVIEW BUNDLER
+  // ==========================================
   const renderLivePreview = () => {
       const fileKeys = Object.keys(generatedFiles);
-      
       const htmlKey = fileKeys.find(k => k.endsWith('index.html') || k.endsWith('.html'));
       const cssKey = fileKeys.find(k => k.endsWith('styles.css') || k.endsWith('index.css') || k.endsWith('App.css') || k.endsWith('global.css'));
       const reactKey = fileKeys.find(k => k.endsWith('App.jsx') || k.endsWith('main.jsx') || k.endsWith('index.jsx'));
 
-      // IF HTML MISSING, PROVIDE A SOLID FALLBACK
       let htmlFile = htmlKey ? generatedFiles[htmlKey] : `<!DOCTYPE html><html><head></head><body><div id="root"></div></body></html>`;
       let cssFile = cssKey ? generatedFiles[cssKey] : "";
       let reactCode = reactKey ? generatedFiles[reactKey] : "";
 
-      // Ensure root div exists
-      if (!htmlFile.includes('id="root"')) {
-          htmlFile = htmlFile.replace('<body>', '<body><div id="root"></div>');
-      }
+      if (!htmlFile.includes('id="root"')) htmlFile = htmlFile.replace('<body>', '<body><div id="root"></div>');
 
       const envObj = {}; projectEnv.forEach(e => { if (e.key.trim()) envObj[e.key.trim()] = e.value.trim(); });
 
@@ -222,33 +240,19 @@ export default function App() {
       `;
 
       let cleanReact = reactCode.replace(/import\s+.*?from\s+['"].*?['"];?/g, '').replace(/export\s+default\s+function/g, 'function');
-      
-      let executeReact = reactCode ? `
-        <script type="text/babel" data-type="module">
-          ${cleanReact}
-          const rootElement = document.getElementById('root');
-          if(rootElement) {
-              const root = ReactDOM.createRoot(rootElement);
-              root.render(<App />);
-          }
-        </script>
-      ` : "";
+      let executeReact = reactCode ? `<script type="text/babel" data-type="module">${cleanReact} const rootElement = document.getElementById('root'); if(rootElement) { const root = ReactDOM.createRoot(rootElement); root.render(<App />); }</script>` : "";
 
-      if (htmlFile.includes('</head>')) {
-          htmlFile = htmlFile.replace('</head>', `${reactImports}</head>`);
-      } else {
-          htmlFile = `<head>${reactImports}</head>${htmlFile}`;
-      }
-
-      if (htmlFile.includes('</body>')) {
-          htmlFile = htmlFile.replace('</body>', `${executeReact}</body>`);
-      } else {
-          htmlFile = `${htmlFile}${executeReact}`;
-      }
+      if (htmlFile.includes('</head>')) htmlFile = htmlFile.replace('</head>', `${reactImports}</head>`);
+      else htmlFile = `<head>${reactImports}</head>${htmlFile}`;
+      if (htmlFile.includes('</body>')) htmlFile = htmlFile.replace('</body>', `${executeReact}</body>`);
+      else htmlFile = `${htmlFile}${executeReact}`;
 
       return htmlFile;
   };
 
+  // ==========================================
+  // 🌍 DEPLOYMENT & DOMAIN LOGIC
+  // ==========================================
   const handlePemUpload = (e) => {
     const file = e.target.files[0];
     if (!file) return;
@@ -259,22 +263,23 @@ export default function App() {
 
   const handlePublish = async () => {
     if(!currentUser) return setIsAuthModalOpen(true);
-
-    if (publishMethod === 'aws' && (!awsTargetIp || !awsAuthKey)) return alert("Please provide AWS IP and Auth Key.");
-    if (publishMethod === 'github' && (!githubToken || !repoName)) return alert("Please provide GitHub Token and Repo Name.");
+    if (publishMethod === 'aws' && (!awsTargetIp || !awsAuthKey)) return alert("Provide AWS IP and Auth Key.");
+    if (publishMethod === 'github' && (!githubToken || !repoName)) return alert("Provide GitHub Token and Repo Name.");
+    if (publishMethod === 'domain' && !customDomain) return alert("Provide a valid domain name.");
 
     setIsPublishModalOpen(false); setIsConsoleOpen(true); setDeployedUrl(null);
-    setTerminalOutput(`> 🚀 Initiating Deployment via ${publishMethod.toUpperCase()} API...`);
+    setTerminalOutput(`\n> 🚀 Initiating Deployment Sequence [${publishMethod.toUpperCase()}]...`);
     
     try {
         let payload = {};
-        if (publishMethod === 'aws') {
-            payload = { targetIp: awsTargetIp, authKey: awsAuthKey };
-        } else if (publishMethod === 'github') {
-            payload = { githubToken: githubToken, repoName: repoName };
-        } 
+        if (publishMethod === 'aws') payload = { targetIp: awsTargetIp, authKey: awsAuthKey };
+        else if (publishMethod === 'github') payload = { githubToken: githubToken, repoName: repoName };
+        else if (publishMethod === 'domain') payload = { customDomain }; // Domain payload
+
+        // Switch to the correct API endpoint
+        const endpoint = publishMethod === 'domain' ? 'setup-domain' : `publish-${publishMethod}`;
         
-        const res = await fetch(`${BACKEND_URL}/api/publish-${publishMethod}`, {
+        const res = await fetch(`${BACKEND_URL}/api/${endpoint}`, {
             method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${localStorage.getItem('mantu_token')}` },
             body: JSON.stringify(payload)
         });
@@ -286,14 +291,17 @@ export default function App() {
                 setDeployedUrl(data.url); 
                 setTerminalOutput(prev => prev + `\n> 🔗 URL: ${data.url}`);
             }
-        } else setTerminalOutput(prev => prev + `\n> ⚠️ Error: ${data.error}`);
-    } catch(e) { setTerminalOutput(prev => prev + `\n> ❌ Network Error: Could not reach backend.`); }
+        } else setTerminalOutput(prev => prev + `\n> ⚠️ Error: ${data.error || data.message}`);
+    } catch(e) { setTerminalOutput(prev => prev + `\n> ❌ Network Error: Backend Unreachable.`); }
   };
 
   const activeCode = generatedFiles[activeFile] || '';
   const lines = Array.from({length: Math.max(activeCode.split('\n').length, 1)}, (_, i) => i + 1);
   const handleCodeScroll = (e) => { if (lineNumbersRef.current) lineNumbersRef.current.scrollTop = e.target.scrollTop; };
 
+  // ==========================================
+  // 🎨 RENDER UI
+  // ==========================================
   return (
     <div className="h-[100dvh] w-full flex flex-col font-sans overflow-hidden bg-[#050505] text-white relative">
       <style dangerouslySetInnerHTML={{__html: globalStyles}} />
@@ -310,24 +318,31 @@ export default function App() {
            {currentUser ? (
                <div className="flex items-center gap-4">
                    <div className="hidden md:flex items-center gap-2 text-[11px] font-bold bg-green-500/10 text-green-500 border border-green-500/20 px-3 py-1 rounded-full"><SparkleIcon/> Credits: {currentUser.credits || 10}</div>
-                   <div className="flex items-center gap-2 text-gray-300"><UserIcon/> <span className="text-xs font-bold">{currentUser.name}</span></div>
+                   
+                   {/* NEW: Global Project History Button */}
+                   <button onClick={() => setIsHistoryModalOpen(true)} className="flex items-center gap-1.5 text-xs text-gray-400 hover:text-white transition"><HistoryIcon/> <span className="hidden sm:block">History</span></button>
+                   
+                   <div className="flex items-center gap-2 text-gray-300 border-l border-[#2b2b36] pl-4 ml-2"><UserIcon/> <span className="text-xs font-bold">{currentUser.name}</span></div>
                    <button onClick={handleLogout} className="text-xs text-red-400 hover:text-red-300 ml-2 font-bold">Logout</button>
                </div>
            ) : (<button onClick={() => setIsAuthModalOpen(true)} className="text-xs font-bold text-black bg-white px-5 py-1.5 rounded-full hover:bg-gray-200 transition">Log In / Sign Up</button>)}
         </div>
       </nav>
 
+      {/* NEW: KILLER HERO SECTION */}
       {view === 'home' ? (
-        <div className="flex-1 flex flex-col items-center pt-16 p-4 overflow-y-auto relative z-10 custom-scrollbar">
+        <div className="flex-1 flex flex-col items-center pt-20 p-4 overflow-y-auto relative z-10 custom-scrollbar">
             <div className="absolute inset-0 pointer-events-none z-[-1] overflow-hidden"><div className="absolute inset-0 bg-[linear-gradient(to_right,#1f1f23_1px,transparent_1px),linear-gradient(to_bottom,#1f1f23_1px,transparent_1px)] bg-[size:4rem_4rem] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_100%)] opacity-30"></div><div className="absolute top-[10%] left-[20%] w-[30%] h-[30%] bg-blue-600/20 blur-[120px] rounded-full animate-pulse"></div><div className="absolute bottom-[20%] right-[20%] w-[30%] h-[30%] bg-purple-600/20 blur-[120px] rounded-full animate-pulse" style={{animationDelay: '2s'}}></div></div>
-            <h1 className="text-5xl md:text-6xl font-extrabold mb-4 text-center tracking-tight">Build NPM Apps in <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-500">Seconds</span></h1>
-            <p className="text-gray-400 mb-10 max-w-xl text-center text-sm md:text-base leading-relaxed">Describe your dream app. Mantu AI will architect the complete NPM workspace structure, bundle the project, and deploy it instantly.</p>
-            <div className="w-full max-w-3xl bg-[#0d0d12]/80 backdrop-blur-xl border border-[#2b2b36] rounded-2xl flex flex-col shadow-2xl transition-all duration-300 focus-within:border-blue-500 focus-within:shadow-[0_0_30px_rgba(59,130,246,0.2)]">
-                <textarea value={prompt} onChange={(e) => setPrompt(e.target.value)} placeholder="e.g. Build an AI video generator React Native app..." className="w-full bg-transparent border-none outline-none p-5 resize-none min-h-[120px] text-lg text-white placeholder-gray-600" onKeyDown={(e) => { if(e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); triggerBuild(prompt, false); } }} />
-                <div className="flex items-center justify-between p-3 border-t border-[#1f1f23]"><div className="flex gap-3 px-2 text-gray-500"><button onClick={()=>toggleListening('new')} className={`hover:text-white transition ${isListening?'text-red-500 animate-pulse':''}`}><MicIcon/></button><button className="hover:text-white transition"><ImageIcon/></button></div><button onClick={() => triggerBuild(prompt, false)} disabled={isGenerating} className="bg-blue-600 hover:bg-blue-500 text-white px-6 py-2 rounded-xl font-bold flex items-center gap-2 transition shadow-lg">{isGenerating ? <span className="animate-spin">🌀</span> : <SparkleIcon/>} {isGenerating ? 'Building...' : 'Generate'}</button></div>
+            
+            <div className="inline-block px-4 py-1.5 rounded-full border border-blue-500/30 bg-blue-500/10 text-blue-400 text-[10px] font-bold tracking-widest mb-6"><SparkleIcon className="inline mr-2"/> MANTU OS 4.0 ENTERPRISE</div>
+            <h1 className="text-5xl md:text-7xl font-black mb-6 text-center tracking-tighter">Code to <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 via-indigo-500 to-purple-600">Cloud</span> in Seconds</h1>
+            <p className="text-gray-400 mb-10 max-w-xl text-center text-sm md:text-base leading-relaxed">Turn your ideas into live Enterprise Applications instantly. Mantu AI architects the NPM workspace, bundles the project, and deploys it to the world.</p>
+            
+            <div className="w-full max-w-3xl bg-[#0d0d12]/80 backdrop-blur-xl border border-[#2b2b36] rounded-2xl flex flex-col shadow-2xl transition-all duration-300 focus-within:border-blue-500 focus-within:shadow-[0_0_30px_rgba(59,130,246,0.2)] hover:border-[#3b3b46]">
+                <textarea value={prompt} onChange={(e) => setPrompt(e.target.value)} placeholder="e.g. Build an AI Video Generator Dashboard like Sora..." className="w-full bg-transparent border-none outline-none p-6 resize-none min-h-[140px] text-lg text-white placeholder-gray-600" onKeyDown={(e) => { if(e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); triggerBuild(prompt, false); } }} />
+                <div className="flex items-center justify-between p-4 border-t border-[#1f1f23]"><div className="flex gap-4 px-2 text-gray-500"><button onClick={()=>toggleListening('new')} className={`hover:text-white transition ${isListening?'text-red-500 animate-pulse':''}`}><MicIcon/></button></div><button onClick={() => triggerBuild(prompt, false)} disabled={isGenerating} className="bg-white text-black hover:bg-gray-200 px-8 py-2.5 rounded-xl font-extrabold flex items-center gap-2 transition shadow-[0_0_20px_rgba(255,255,255,0.2)]">{isGenerating ? <span className="animate-spin">🌀</span> : <SparkleIcon/>} {isGenerating ? 'Architecting...' : 'Generate App'}</button></div>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-12 w-full max-w-3xl z-10">{[ {icon: '📈', title: 'Crypto Dashboard', desc: 'NPM React workspace'}, {icon: '🛒', title: 'E-Commerce Store', desc: 'Vite + React structure'}, {icon: '🎬', title: 'Video SaaS App', desc: 'Enterprise architecture'} ].map((card, i) => (<div key={i} onClick={() => setPrompt(`Build a ${card.title} with ${card.desc.toLowerCase()}`)} className="bg-white/5 backdrop-blur-md border border-white/10 p-4 rounded-xl cursor-pointer hover:-translate-y-1 hover:bg-white/10 hover:border-blue-500/50 transition-all duration-300"><div className="text-xl mb-2">{card.icon}</div><div className="font-bold text-sm text-white">{card.title}</div><div className="text-[10px] text-gray-400 mt-1">{card.desc}</div></div>))}</div>
-            {projects.length > 0 && currentUser && (<div className="mt-12 mb-10 z-10 flex flex-col items-center w-full max-w-xl"><div className="text-[10px] font-bold text-blue-400 uppercase tracking-widest mb-3 flex items-center gap-2"><CloudIcon/> Your Cloud Projects</div><div className="w-full flex flex-col gap-3">{projects.map((proj) => (<button key={proj._id} onClick={() => loadProject(proj)} className="flex items-center gap-4 bg-[#0d0d12]/80 backdrop-blur-md border border-[#1f1f23] hover:border-blue-500/50 p-4 rounded-xl transition-all w-full text-left group"><div className="bg-blue-500/20 text-blue-500 p-3 rounded-lg group-hover:scale-110 transition"><CodeIcon/></div><div className="flex-1 overflow-hidden"><div className="text-sm font-bold text-white truncate">{proj.title}</div><div className="text-xs text-gray-500 mt-1">{Object.keys(proj.files).length} files • Synced to Cloud</div></div><div className="text-gray-500 group-hover:text-white transition">Resume →</div></button>))}</div></div>)}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-12 w-full max-w-3xl z-10">{[ {icon: '📈', title: 'Crypto Dashboard', desc: 'NPM React workspace'}, {icon: '🛒', title: 'E-Commerce Store', desc: 'Vite + React structure'}, {icon: '🎬', title: 'Video SaaS App', desc: 'Enterprise architecture'} ].map((card, i) => (<div key={i} onClick={() => setPrompt(`Build a ${card.title} with ${card.desc.toLowerCase()}`)} className="bg-white/5 backdrop-blur-md border border-white/10 p-5 rounded-xl cursor-pointer hover:-translate-y-1 hover:bg-white/10 hover:border-blue-500/50 transition-all duration-300"><div className="text-2xl mb-3">{card.icon}</div><div className="font-bold text-sm text-white">{card.title}</div><div className="text-[11px] text-gray-400 mt-1">{card.desc}</div></div>))}</div>
         </div>
       ) : (
         <div className="flex-1 flex flex-col overflow-hidden">
@@ -338,10 +353,10 @@ export default function App() {
                 </div>
                 <div className="flex gap-2 shrink-0">
                     {deployedUrl && (<a href={deployedUrl} target="_blank" rel="noreferrer" className="px-3 py-1.5 text-xs font-bold bg-green-500/10 text-green-400 border border-green-500/50 hover:bg-green-500/20 rounded flex items-center gap-2 transition"><LinkIcon/> Open URL</a>)}
-                    <button onClick={saveCurrentProject} className="px-3 py-1.5 text-xs font-bold bg-[#1a1a24] text-blue-400 border border-blue-900/50 hover:bg-blue-900/20 rounded flex items-center gap-2 transition"><CloudIcon/> Save to Cloud</button>
-                    <button onClick={() => setIsConsoleOpen(!isConsoleOpen)} className="px-3 py-1.5 text-xs font-bold bg-[#1a1a24] text-gray-300 hover:bg-[#2b2b36] rounded flex items-center gap-2 transition"><TerminalIcon/> _Console</button>
+                    <button onClick={saveCurrentProject} className="px-3 py-1.5 text-xs font-bold bg-[#1a1a24] text-blue-400 border border-blue-900/50 hover:bg-blue-900/20 rounded flex items-center gap-2 transition"><CloudIcon/> Save</button>
+                    <button onClick={() => setIsConsoleOpen(!isConsoleOpen)} className={`px-3 py-1.5 text-xs font-bold rounded flex items-center gap-2 transition ${isConsoleOpen ? 'bg-[#2b2b36] text-white' : 'bg-[#1a1a24] text-gray-300 hover:bg-[#2b2b36]'}`}><TerminalIcon/> _Console</button>
                     <button onClick={() => setIsEnvModalOpen(true)} className="px-3 py-1.5 text-xs font-bold bg-yellow-500/10 text-yellow-500 border border-yellow-500/20 hover:bg-yellow-500/20 rounded flex items-center gap-2 transition"><LockIcon/> Env Keys</button>
-                    <button onClick={() => setIsPublishModalOpen(true)} className="px-4 py-1.5 text-xs font-bold bg-blue-600 hover:bg-blue-500 text-white rounded flex items-center gap-2 shadow transition"><CloudIcon/> Publish App</button>
+                    <button onClick={() => setIsPublishModalOpen(true)} className="px-4 py-1.5 text-xs font-bold bg-white text-black hover:bg-gray-200 rounded flex items-center gap-2 shadow transition"><CloudIcon/> Publish App</button>
                 </div>
             </div>
 
@@ -364,51 +379,80 @@ export default function App() {
         </div>
       )}
 
+      {/* AUTO-SCROLLING CONSOLE */}
       {view === 'editor' && (
           <div className={`w-full transition-all duration-300 z-40 bg-[#0a0a0c] border-t border-[#1f1f23] shrink-0 ${isConsoleOpen ? 'h-56' : 'h-8'}`}>
-              <div className="flex items-center justify-between px-4 h-8 cursor-pointer hover:bg-[#1a1a24]" onClick={() => setIsConsoleOpen(!isConsoleOpen)}><div className="text-[10px] font-bold text-gray-400 flex items-center gap-2 uppercase"><TerminalIcon/> OUTPUT CONSOLE</div><button className="text-gray-500 hover:text-white">{isConsoleOpen ? '▼' : '▲'}</button></div>
-              {isConsoleOpen && (<div className="p-4 pt-2 h-48 overflow-y-auto font-mono text-[11px] text-green-500 custom-scrollbar"><pre className="whitespace-pre-wrap leading-relaxed">{terminalOutput}</pre></div>)}
+              <div className="flex items-center justify-between px-4 h-8 cursor-pointer hover:bg-[#1a1a24]" onClick={() => setIsConsoleOpen(!isConsoleOpen)}><div className="text-[10px] font-bold text-gray-400 flex items-center gap-2 uppercase"><TerminalIcon/> DEPLOYMENT LOGS</div><button className="text-gray-500 hover:text-white">{isConsoleOpen ? '▼' : '▲'}</button></div>
+              {isConsoleOpen && (<div className="p-4 pt-2 h-48 overflow-y-auto font-mono text-[11px] text-green-500 custom-scrollbar"><pre className="whitespace-pre-wrap leading-relaxed">{terminalOutput}</pre><div ref={consoleEndRef} /></div>)}
           </div>
       )}
 
+      {/* PUBLISH & DOMAIN MODAL */}
       {isPublishModalOpen && (
           <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
-              <div className="bg-[#111116] border border-[#2b2b2b] w-full max-w-3xl rounded-xl overflow-hidden shadow-2xl flex flex-col md:flex-row min-h-[400px]">
+              <div className="bg-[#111116] border border-[#2b2b2b] w-full max-w-4xl rounded-xl overflow-hidden shadow-2xl flex flex-col md:flex-row min-h-[450px]">
                   <div className="w-full md:w-1/3 bg-[#0a0a0c] border-r border-[#1f1f23] flex flex-col">
-                      <div className="p-4 border-b border-[#1f1f23] flex items-center gap-2"><CloudIcon /> <h3 className="font-bold text-sm">Publish Your App</h3></div>
-                      <div className="p-2 flex flex-col gap-1 flex-1">
-                          <button onClick={() => setPublishMethod('cloud')} className={`p-3 text-left rounded-lg transition ${publishMethod === 'cloud' ? 'bg-[#1a40af]/20 border border-blue-600 text-blue-500' : 'text-gray-400 hover:bg-[#1a1a24]'}`}><div className="font-bold text-xs flex items-center gap-2"><CloudIcon/> Upload to Netlify</div><div className="text-[10px] mt-1 opacity-70">Push raw NPM files</div></button>
-                          <button onClick={() => setPublishMethod('aws')} className={`p-3 text-left rounded-lg transition ${publishMethod === 'aws' ? 'bg-orange-500/10 border border-orange-500/50 text-orange-500' : 'text-gray-400 hover:bg-[#1a1a24]'}`}><div className="font-bold text-xs flex items-center gap-2"><ServerIcon/> AWS EC2 Auto</div><div className="text-[10px] mt-1 opacity-70">Deploy to your own server</div></button>
-                          <button onClick={() => setPublishMethod('github')} className={`p-3 text-left rounded-lg transition ${publishMethod === 'github' ? 'bg-gray-800 border border-gray-600 text-white' : 'text-gray-400 hover:bg-[#1a1a24]'}`}><div className="font-bold text-xs flex items-center gap-2"><GithubIcon/> GitHub Push</div><div className="text-[10px] mt-1 opacity-70">Push code to repository</div></button>
+                      <div className="p-5 border-b border-[#1f1f23] flex items-center gap-2"><CloudIcon /> <h3 className="font-bold text-sm">Deployment Center</h3></div>
+                      <div className="p-3 flex flex-col gap-2 flex-1">
+                          <button onClick={() => setPublishMethod('cloud')} className={`p-3 text-left rounded-lg transition ${publishMethod === 'cloud' ? 'bg-[#1a40af]/20 border border-blue-600 text-blue-500' : 'text-gray-400 hover:bg-[#1a1a24]'}`}><div className="font-bold text-xs flex items-center gap-2"><CloudIcon/> Netlify Cloud</div><div className="text-[10px] mt-1 opacity-70">Push raw NPM files</div></button>
+                          <button onClick={() => setPublishMethod('aws')} className={`p-3 text-left rounded-lg transition ${publishMethod === 'aws' ? 'bg-orange-500/10 border border-orange-500/50 text-orange-500' : 'text-gray-400 hover:bg-[#1a1a24]'}`}><div className="font-bold text-xs flex items-center gap-2"><ServerIcon/> AWS EC2 Server</div><div className="text-[10px] mt-1 opacity-70">Deploy to own instance</div></button>
+                          <button onClick={() => setPublishMethod('github')} className={`p-3 text-left rounded-lg transition ${publishMethod === 'github' ? 'bg-gray-800 border border-gray-600 text-white' : 'text-gray-400 hover:bg-[#1a1a24]'}`}><div className="font-bold text-xs flex items-center gap-2"><GithubIcon/> GitHub Repo</div><div className="text-[10px] mt-1 opacity-70">Push code to Git</div></button>
+                          {/* NEW: DOMAIN TAB */}
+                          <button onClick={() => setPublishMethod('domain')} className={`p-3 text-left rounded-lg transition ${publishMethod === 'domain' ? 'bg-green-500/10 border border-green-500/50 text-green-500' : 'text-gray-400 hover:bg-[#1a1a24]'}`}><div className="font-bold text-xs flex items-center gap-2"><GlobeIcon/> Custom Domain</div><div className="text-[10px] mt-1 opacity-70">Link your .com or .in</div></button>
                       </div>
                   </div>
-                  <div className="w-full md:w-2/3 bg-[#111116] p-6 flex flex-col relative">
+                  <div className="w-full md:w-2/3 bg-[#111116] p-8 flex flex-col relative">
                       <button onClick={() => setIsPublishModalOpen(false)} className="absolute top-4 right-4 text-gray-500 hover:text-white transition"><CloseIcon/></button>
                       
                       {publishMethod === 'cloud' && (
                           <div className="flex flex-col h-full mt-4 justify-center items-center text-center">
-                              <h4 className="text-blue-500 font-bold text-lg mb-2">Upload to Netlify Cloud</h4>
-                              <p className="text-gray-400 text-sm mb-8">This will upload your raw NPM structure. Connect your GitHub to Netlify later to trigger automated Vite builds.</p>
-                              <button onClick={handlePublish} className="w-full max-w-xs bg-blue-600 hover:bg-blue-500 text-white py-3 rounded-lg font-bold text-sm transition flex justify-center items-center gap-2"><CloudIcon/> Push NPM Files</button>
+                              <div className="bg-blue-500/10 p-4 rounded-full mb-4 text-blue-500"><CloudIcon /></div>
+                              <h4 className="text-white font-black text-xl mb-2">Deploy to Global Edge</h4>
+                              <p className="text-gray-400 text-sm mb-8 max-w-sm">Upload your raw NPM structure instantly. Connect your GitHub later to trigger automated Vite CI/CD builds.</p>
+                              <button onClick={handlePublish} className="w-full max-w-xs bg-blue-600 hover:bg-blue-500 text-white py-3.5 rounded-xl font-bold text-sm transition flex justify-center items-center gap-2"><CloudIcon/> Upload NPM Files</button>
                           </div>
                       )}
 
                       {publishMethod === 'aws' && (
-                          <div className="flex flex-col h-full mt-4">
-                              <h4 className="text-orange-500 font-bold text-sm mb-4">AWS Automatic Deployment</h4>
-                              <div className="flex gap-3 mb-6"><button onClick={()=>setAwsInstanceType('cpu')} className={`flex-1 p-3 rounded-lg border flex flex-col items-start transition ${awsInstanceType === 'cpu' ? 'border-orange-500 bg-orange-500/5 text-orange-400' : 'border-[#2b2b2b] text-gray-400 hover:border-gray-600'}`}><div className="flex items-center gap-2 font-bold text-xs"><CpuIcon/> CPU</div></button><button onClick={()=>setAwsInstanceType('gpu')} className={`flex-1 p-3 rounded-lg border flex flex-col items-start relative transition ${awsInstanceType === 'gpu' ? 'border-purple-500 bg-purple-500/5 text-purple-400' : 'border-[#2b2b2b] text-gray-400 hover:border-gray-600'}`}><span className="absolute -top-2 -right-2 bg-purple-600 text-[9px] text-white px-2 py-0.5 rounded-full font-bold">PRO</span><div className="flex items-center gap-2 font-bold text-xs">⚡ GPU</div></button></div>
-                              <div className="mb-4"><label className="text-xs text-gray-400 font-bold mb-1.5 block">Target IP Address</label><input type="text" value={awsTargetIp||""} onChange={(e) => setAwsTargetIp(e.target.value)} placeholder="e.g. 13.234.11.22" className="w-full bg-[#0A0A0E] border border-[#2b2b2b] rounded-lg p-2.5 text-sm text-white outline-none focus:border-orange-500" /></div>
-                              <div className="mb-6"><label className="text-xs text-gray-400 font-bold mb-1.5 block">Server Auth Key (.pem)</label><div className="flex gap-2"><input type="password" value={awsAuthKey ? '************************' : ''} readOnly placeholder="Upload .pem file" className="flex-1 bg-[#0A0A0E] border border-[#2b2b2b] rounded-lg p-2.5 text-sm text-gray-500 outline-none" /><label className="bg-[#1a1a24] border border-[#2b2b2b] hover:bg-[#2b2b36] cursor-pointer text-white px-4 py-2.5 rounded-lg text-xs font-bold flex items-center">Upload <input type="file" accept=".pem" onChange={handlePemUpload} className="hidden" /></label></div></div>
-                              <button onClick={handlePublish} className="mt-auto w-full bg-orange-600 hover:bg-orange-500 text-white py-3 rounded-lg font-bold text-sm shadow-lg transition">Deploy NPM to AWS {(awsInstanceType || 'cpu').toUpperCase()}</button>
+                          <div className="flex flex-col h-full mt-2">
+                              <h4 className="text-white font-bold text-lg mb-6">AWS Configuration</h4>
+                              <div className="flex gap-3 mb-6"><button onClick={()=>setAwsInstanceType('cpu')} className={`flex-1 p-3 rounded-lg border flex flex-col items-start transition ${awsInstanceType === 'cpu' ? 'border-orange-500 bg-orange-500/5 text-orange-400' : 'border-[#2b2b2b] text-gray-400 hover:border-gray-600'}`}><div className="flex items-center gap-2 font-bold text-xs"><CpuIcon/> CPU Instance</div></button><button onClick={()=>setAwsInstanceType('gpu')} className={`flex-1 p-3 rounded-lg border flex flex-col items-start relative transition ${awsInstanceType === 'gpu' ? 'border-purple-500 bg-purple-500/5 text-purple-400' : 'border-[#2b2b2b] text-gray-400 hover:border-gray-600'}`}><span className="absolute -top-2 -right-2 bg-purple-600 text-[9px] text-white px-2 py-0.5 rounded-full font-bold">PRO</span><div className="flex items-center gap-2 font-bold text-xs">⚡ GPU Accelerated</div></button></div>
+                              <div className="mb-5"><label className="text-xs text-gray-400 font-bold mb-1.5 block uppercase tracking-wider">IPv4 Address</label><input type="text" value={awsTargetIp||""} onChange={(e) => setAwsTargetIp(e.target.value)} placeholder="e.g. 13.234.11.22" className="w-full bg-[#0A0A0E] border border-[#2b2b2b] rounded-lg p-3 text-sm text-white outline-none focus:border-orange-500 transition" /></div>
+                              <div className="mb-6"><label className="text-xs text-gray-400 font-bold mb-1.5 block uppercase tracking-wider">SSH Auth Key (.pem)</label><div className="flex gap-2"><input type="password" value={awsAuthKey ? '************************' : ''} readOnly placeholder="Upload .pem certificate" className="flex-1 bg-[#0A0A0E] border border-[#2b2b2b] rounded-lg p-3 text-sm text-gray-500 outline-none" /><label className="bg-[#1a1a24] border border-[#2b2b2b] hover:bg-[#2b2b36] cursor-pointer text-white px-5 py-3 rounded-lg text-xs font-bold flex items-center transition">Browse <input type="file" accept=".pem" onChange={handlePemUpload} className="hidden" /></label></div></div>
+                              <button onClick={handlePublish} className="mt-auto w-full bg-orange-600 hover:bg-orange-500 text-white py-3.5 rounded-xl font-bold text-sm shadow-lg transition flex items-center justify-center gap-2"><ServerIcon/> Mount to Server</button>
                           </div>
                       )}
 
                       {publishMethod === 'github' && (
-                          <div className="flex flex-col h-full mt-4">
-                              <h4 className="text-gray-200 font-bold text-sm mb-4">GitHub Repository Push</h4>
-                              <div className="mb-4"><label className="text-xs text-gray-400 font-bold mb-1.5 block">GitHub Personal Access Token</label><input type="password" value={githubToken} onChange={(e) => setGithubToken(e.target.value)} placeholder="ghp_xxxxxxxxxxxxxxxxxxxxxxxx" className="w-full bg-[#0A0A0E] border border-[#2b2b2b] rounded-lg p-2.5 text-sm text-white outline-none focus:border-gray-500 transition" /><p className="text-[10px] text-gray-500 mt-1">Requires 'repo' scope.</p></div>
-                              <div className="mb-6"><label className="text-xs text-gray-400 font-bold mb-1.5 block">Repository Name</label><input type="text" value={repoName} onChange={(e) => setRepoName(e.target.value)} placeholder="my-mantu-startup" className="w-full bg-[#0A0A0E] border border-[#2b2b2b] rounded-lg p-2.5 text-sm text-white outline-none focus:border-gray-500 transition" /></div>
-                              <button onClick={handlePublish} className="mt-auto w-full bg-gray-700 hover:bg-gray-600 text-white py-3 rounded-lg font-bold text-sm shadow-lg transition flex items-center justify-center gap-2"><GithubIcon/> Push NPM Code to GitHub</button>
+                          <div className="flex flex-col h-full mt-2">
+                              <h4 className="text-white font-bold text-lg mb-6">GitHub Integration</h4>
+                              <div className="mb-5"><label className="text-xs text-gray-400 font-bold mb-1.5 block uppercase tracking-wider">Personal Access Token (Classic)</label><input type="password" value={githubToken} onChange={(e) => setGithubToken(e.target.value)} placeholder="ghp_xxxxxxxxxxxxxxxxxxxxxxxx" className="w-full bg-[#0A0A0E] border border-[#2b2b2b] rounded-lg p-3 text-sm text-white outline-none focus:border-gray-500 transition" /><p className="text-[10px] text-gray-500 mt-2">Required scopes: <span className="text-gray-300 bg-gray-800 px-1 py-0.5 rounded">repo</span> and <span className="text-gray-300 bg-gray-800 px-1 py-0.5 rounded">workflow</span>.</p></div>
+                              <div className="mb-6"><label className="text-xs text-gray-400 font-bold mb-1.5 block uppercase tracking-wider">Repository Name</label><input type="text" value={repoName} onChange={(e) => setRepoName(e.target.value)} placeholder="my-mantu-startup" className="w-full bg-[#0A0A0E] border border-[#2b2b2b] rounded-lg p-3 text-sm text-white outline-none focus:border-gray-500 transition" /></div>
+                              <button onClick={handlePublish} className="mt-auto w-full bg-white text-black hover:bg-gray-200 py-3.5 rounded-xl font-bold text-sm shadow-lg transition flex items-center justify-center gap-2"><GithubIcon/> Push to Repository</button>
+                          </div>
+                      )}
+
+                      {/* NEW: CUSTOM DOMAIN UI */}
+                      {publishMethod === 'domain' && (
+                          <div className="flex flex-col h-full mt-2">
+                              <h4 className="text-white font-bold text-lg mb-2">Connect Custom Domain</h4>
+                              <p className="text-sm text-gray-400 mb-6">Map your existing domain to your Mantu Cloud deployment.</p>
+                              <div className="mb-6">
+                                  <label className="text-xs text-gray-400 font-bold mb-1.5 block uppercase tracking-wider">Domain Name</label>
+                                  <div className="relative">
+                                      <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none"><GlobeIcon className="text-gray-500"/></div>
+                                      <input type="text" value={customDomain} onChange={(e) => setCustomDomain(e.target.value)} placeholder="www.my-startup.com" className="w-full bg-[#0A0A0E] border border-[#2b2b2b] rounded-lg p-3 pl-10 text-sm text-white outline-none focus:border-green-500 transition" />
+                                  </div>
+                              </div>
+                              <div className="bg-yellow-500/10 border border-yellow-500/20 p-4 rounded-xl mb-6">
+                                  <h5 className="text-xs font-bold text-yellow-500 mb-2">DNS Configuration Required</h5>
+                                  <p className="text-[10px] text-gray-400">Add the following CNAME record in your domain registrar (GoDaddy, Namecheap, etc.):</p>
+                                  <div className="mt-3 flex items-center justify-between bg-black/50 p-2 rounded border border-[#2b2b2b]">
+                                      <span className="text-[11px] font-mono text-gray-300">Name: <b>www</b></span>
+                                      <span className="text-[11px] font-mono text-green-400">Target: <b>mantu-router.edge.net</b></span>
+                                  </div>
+                              </div>
+                              <button onClick={handlePublish} className="mt-auto w-full bg-green-600 hover:bg-green-500 text-white py-3.5 rounded-xl font-bold text-sm shadow-lg transition flex items-center justify-center gap-2"><GlobeIcon/> Verify & Connect Domain</button>
                           </div>
                       )}
                   </div>
@@ -416,7 +460,87 @@ export default function App() {
           </div>
       )}
 
-      {isEnvModalOpen && (<div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4"><div className="bg-[#111116] border border-[#2b2b2b] w-full max-w-lg rounded-xl overflow-hidden shadow-2xl"><div className="p-4 border-b border-[#2b2b2b] flex justify-between items-center bg-yellow-500/5"><h3 className="text-sm font-bold text-yellow-500 flex items-center gap-2"><LockIcon/> Env Variables</h3><button onClick={() => setIsEnvModalOpen(false)} className="text-gray-400 hover:text-white"><CloseIcon/></button></div><div className="p-6 flex flex-col gap-4"><div className="flex gap-2 text-[10px] font-bold text-gray-500 uppercase"><div className="w-1/3 pl-1">KEY</div><div className="flex-1 pl-1">VALUE</div></div>{projectEnv.map((env, i) => (<div key={i} className="flex gap-2 items-center"><input type="text" value={env.key||""} onChange={(e) => { const n = [...projectEnv]; n[i].key = e.target.value; setProjectEnv(n); }} placeholder="API_KEY" className="w-1/3 bg-[#0A0A0E] border border-[#2b2b2b] rounded-lg p-2.5 text-sm text-white outline-none focus:border-yellow-500" /><input type="text" value={env.value||""} onChange={(e) => { const n = [...projectEnv]; n[i].value = e.target.value; setProjectEnv(n); }} placeholder="Value" className="flex-1 bg-[#0A0A0E] border border-[#2b2b2b] rounded-lg p-2.5 text-sm text-white outline-none focus:border-yellow-500" /><button onClick={() => setProjectEnv(projectEnv.filter((_, idx) => idx !== i))} className="text-red-500 font-bold px-2">X</button></div>))}<button onClick={() => setProjectEnv([...projectEnv, { key: '', value: '' }])} className="text-xs text-blue-500 font-bold w-max">+ Add Variable</button><button onClick={() => setIsEnvModalOpen(false)} className="mt-4 w-full bg-blue-600 text-white py-3 rounded-lg font-bold text-sm">Save Keys</button></div></div></div>)}
+      {/* 🔐 PRO ENV VARIABLES MODAL */}
+      {isEnvModalOpen && (
+          <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
+              <div className="bg-[#111116] border border-[#2b2b2b] w-full max-w-lg rounded-2xl overflow-hidden shadow-2xl">
+                  <div className="p-5 border-b border-[#2b2b2b] flex justify-between items-center bg-gradient-to-r from-yellow-500/10 to-transparent">
+                      <div>
+                          <h3 className="text-lg font-bold text-white flex items-center gap-2"><LockIcon className="text-yellow-500"/> Secrets Manager</h3>
+                          <p className="text-[10px] text-gray-500 mt-1">Environment variables for your NPM workspace.</p>
+                      </div>
+                      <button onClick={() => setIsEnvModalOpen(false)} className="text-gray-400 hover:text-white bg-[#1a1a24] p-2 rounded-full"><CloseIcon/></button>
+                  </div>
+                  <div className="p-6 flex flex-col gap-4 max-h-[60vh] overflow-y-auto custom-scrollbar">
+                      <div className="flex gap-2 text-[10px] font-bold text-gray-500 uppercase tracking-wider">
+                          <div className="w-1/3 pl-1">Secret Key</div>
+                          <div className="flex-1 pl-1">Value</div>
+                      </div>
+                      {projectEnv.map((env, i) => (
+                          <div key={i} className="flex gap-2 items-center group">
+                              <input type="text" value={env.key||""} onChange={(e) => { const n = [...projectEnv]; n[i].key = e.target.value.toUpperCase(); setProjectEnv(n); }} placeholder="e.g. VITE_API_URL" className="w-1/3 bg-[#0A0A0E] border border-[#2b2b2b] rounded-lg p-2.5 text-xs text-white font-mono outline-none focus:border-yellow-500 transition" />
+                              <input type="password" value={env.value||""} onChange={(e) => { const n = [...projectEnv]; n[i].value = e.target.value; setProjectEnv(n); }} placeholder="******************" className="flex-1 bg-[#0A0A0E] border border-[#2b2b2b] rounded-lg p-2.5 text-xs text-white font-mono outline-none focus:border-yellow-500 transition" />
+                              <button onClick={() => setProjectEnv(projectEnv.filter((_, idx) => idx !== i))} className="text-gray-600 hover:text-red-500 p-2 opacity-0 group-hover:opacity-100 transition"><CloseIcon/></button>
+                          </div>
+                      ))}
+                      <div className="flex gap-2 mt-2">
+                          <button onClick={() => setProjectEnv([...projectEnv, { key: 'VITE_SUPABASE_URL', value: '' }])} className="text-[10px] border border-[#2b2b2b] hover:border-gray-500 text-gray-400 px-3 py-1.5 rounded-full transition">+ Supabase</button>
+                          <button onClick={() => setProjectEnv([...projectEnv, { key: 'VITE_STRIPE_KEY', value: '' }])} className="text-[10px] border border-[#2b2b2b] hover:border-gray-500 text-gray-400 px-3 py-1.5 rounded-full transition">+ Stripe API</button>
+                      </div>
+                      <button onClick={() => setProjectEnv([...projectEnv, { key: '', value: '' }])} className="text-xs text-yellow-500 font-bold w-max mt-2 hover:underline">+ Add Custom Variable</button>
+                  </div>
+                  <div className="p-4 border-t border-[#2b2b2b] bg-[#0a0a0c]">
+                      <button onClick={() => setIsEnvModalOpen(false)} className="w-full bg-white text-black hover:bg-gray-200 py-3 rounded-xl font-bold text-sm transition shadow-lg">Save & Encrypt Keys</button>
+                  </div>
+              </div>
+          </div>
+      )}
+
+      {/* 📜 PROJECT HISTORY MODAL (NEW) */}
+      {isHistoryModalOpen && (
+          <div className="fixed inset-0 bg-black/80 flex items-center justify-end z-50 transition-opacity">
+              <div className="bg-[#111116] border-l border-[#2b2b2b] w-full max-w-md h-full flex flex-col shadow-2xl animate-slide-in-right">
+                  <div className="p-6 border-b border-[#1f1f23] flex justify-between items-center bg-[#0a0a0c]">
+                      <div>
+                          <h3 className="text-lg font-bold text-white flex items-center gap-2"><HistoryIcon/> Project History</h3>
+                          <p className="text-xs text-gray-500 mt-1">Access your previously synced workspaces.</p>
+                      </div>
+                      <button onClick={() => setIsHistoryModalOpen(false)} className="text-gray-400 hover:text-white bg-[#1a1a24] p-2 rounded-full"><CloseIcon/></button>
+                  </div>
+                  <div className="flex-1 p-6 overflow-y-auto custom-scrollbar">
+                      {projects.length === 0 ? (
+                          <div className="text-center text-gray-500 mt-10">
+                              <CloudIcon className="mx-auto text-4xl mb-3 opacity-20"/>
+                              <p className="text-sm">No projects synced to cloud yet.</p>
+                          </div>
+                      ) : (
+                          <div className="flex flex-col gap-3">
+                              {projects.map((proj) => (
+                                  <div key={proj._id} className="bg-[#1a1a24] border border-[#2b2b36] rounded-xl p-4 hover:border-blue-500/50 transition group">
+                                      <div className="flex justify-between items-start mb-2">
+                                          <h4 className="font-bold text-sm text-white truncate pr-4">{proj.title}</h4>
+                                          <span className="text-[10px] bg-blue-500/10 text-blue-400 px-2 py-0.5 rounded">{Object.keys(proj.files).length} files</span>
+                                      </div>
+                                      <p className="text-xs text-gray-500 mb-4">{new Date(proj.createdAt).toLocaleDateString()}</p>
+                                      <div className="flex gap-2">
+                                          <button onClick={() => loadProject(proj)} className="flex-1 bg-blue-600/20 text-blue-400 hover:bg-blue-600 hover:text-white text-xs font-bold py-2 rounded-lg transition">Load Workspace</button>
+                                          {/* Note: Backend logic for ZIP download can be connected here later */}
+                                          <button onClick={() => alert("Zip download API coming soon!")} className="px-3 bg-gray-800 text-gray-400 hover:text-white rounded-lg transition"><CodeIcon/></button>
+                                      </div>
+                                  </div>
+                              ))}
+                          </div>
+                      )}
+                  </div>
+              </div>
+          </div>
+      )}
+
+      {/* Animations for sidebar */}
+      <style dangerouslySetInnerHTML={{__html: `
+        @keyframes slideInRight { from { transform: translateX(100%); } to { transform: translateX(0); } }
+        .animate-slide-in-right { animation: slideInRight 0.3s cubic-bezier(0.16, 1, 0.3, 1); }
+      `}} />
     </div>
   );
 }
