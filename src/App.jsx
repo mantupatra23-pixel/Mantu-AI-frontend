@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import AuthModal from './components/AuthModal';
 
 // ==========================================
-// 🎨 ALL ICONS (100% COMPLETE & NEW ICONS ADDED)
+// 🎨 ALL ICONS
 // ==========================================
 const MantuLogo = () => <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="url(#blue-grad)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><defs><linearGradient id="blue-grad" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stopColor="#3b82f6" /><stop offset="100%" stopColor="#8b5cf6" /></linearGradient></defs><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>;
 const SparkleIcon = () => <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="m12 3-1.9 5.8a2 2 0 0 1-1.3 1.3L3 12l5.8 1.9a2 2 0 0 1 1.3 1.3L12 21l1.9-5.8a2 2 0 0 1-1.3-1.3L21 12l-5.8-1.9a2 2 0 0 1-1.3-1.3L12 3Z"/></svg>;
@@ -23,52 +23,43 @@ const SendIcon = () => <svg width="14" height="14" viewBox="0 0 24 24" fill="non
 const HistoryIcon = () => <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M12 7v5l4 2"/></svg>;
 const GlobeIcon = () => <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"/><path d="M2 12h20"/></svg>;
 
-// ==========================================
-// 🚀 GLOBAL CSS
-// ==========================================
-const globalStyles = `
-@keyframes marquee { 0% { transform: translateX(100vw); } 100% { transform: translateX(-100%); } } 
-.animate-marquee { animation: marquee 30s linear infinite; display: inline-block; padding-left: 100%; } 
-.custom-scrollbar::-webkit-scrollbar { width: 6px; height: 6px; } 
-.custom-scrollbar::-webkit-scrollbar-track { background: transparent; } 
-.custom-scrollbar::-webkit-scrollbar-thumb { background: #2b2b36; border-radius: 4px; } 
-.custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #3b3b46; }
-`;
+const globalStyles = `@keyframes marquee { 0% { transform: translateX(100vw); } 100% { transform: translateX(-100%); } } .animate-marquee { animation: marquee 30s linear infinite; display: inline-block; padding-left: 100%; } .custom-scrollbar::-webkit-scrollbar { width: 6px; height: 6px; } .custom-scrollbar::-webkit-scrollbar-track { background: transparent; } .custom-scrollbar::-webkit-scrollbar-thumb { background: #2b2b36; border-radius: 4px; } .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #3b3b46; }`;
 
 export default function App() {
   const BACKEND_URL = "https://visora-code.onrender.com"; 
   
   const [currentUser, setCurrentUser] = useState(null);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
-  const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false); // NEW: Project History Modal
+  const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
 
   const [projects, setProjects] = useState([]);
   const [prompt, setPrompt] = useState('');
   const [followUpPrompt, setFollowUpPrompt] = useState(''); 
+  const [uploadedImage, setUploadedImage] = useState(null); // NEW: Image State
+  
   const [view, setView] = useState('home'); 
   const [isGenerating, setIsGenerating] = useState(false);
-  const [activeTab, setActiveTab] = useState('code'); 
+  const [activeTab, setActiveTab] = useState('preview'); 
   const [generatedFiles, setGeneratedFiles] = useState({});
   const [activeFile, setActiveFile] = useState("");
   const [actionLogs, setActionLogs] = useState([]);
   
-  // Terminal System
   const [terminalOutput, setTerminalOutput] = useState("> System Ready. Welcome to Mantu OS.");
   const [isConsoleOpen, setIsConsoleOpen] = useState(false);
-  const consoleEndRef = useRef(null); // NEW: Auto-scroll ref
+  const consoleEndRef = useRef(null);
 
   const [isListening, setIsListening] = useState(false);
   const recognitionRef = useRef(null);
+  const fileInputRef = useRef(null); // NEW: File input ref
 
-  // Publish / Domain Modals
   const [isPublishModalOpen, setIsPublishModalOpen] = useState(false);
-  const [publishMethod, setPublishMethod] = useState('cloud'); 
+  const [publishMethod, setPublishMethod] = useState('github'); 
   const [awsInstanceType, setAwsInstanceType] = useState('cpu'); 
   const [awsTargetIp, setAwsTargetIp] = useState(""); 
   const [awsAuthKey, setAwsAuthKey] = useState(""); 
   const [githubToken, setGithubToken] = useState("");
   const [repoName, setRepoName] = useState("");
-  const [customDomain, setCustomDomain] = useState(""); // NEW: Domain Input
+  const [customDomain, setCustomDomain] = useState(""); 
   
   const [isEnvModalOpen, setIsEnvModalOpen] = useState(false);
   const [projectEnv, setProjectEnv] = useState([{ key: '', value: '' }]);
@@ -77,24 +68,16 @@ export default function App() {
   const codeTextareaRef = useRef(null);
   const lineNumbersRef = useRef(null);
 
-  // ==========================================
-  // 📜 AUTO-SCROLL CONSOLE (NEW)
-  // ==========================================
   useEffect(() => {
-      if (isConsoleOpen && consoleEndRef.current) {
-          consoleEndRef.current.scrollIntoView({ behavior: "smooth" });
-      }
+      if (isConsoleOpen && consoleEndRef.current) consoleEndRef.current.scrollIntoView({ behavior: "smooth" });
   }, [terminalOutput, isConsoleOpen]);
 
-  // ==========================================
-  // ☁️ CLOUD SYNC LOGIC
-  // ==========================================
   const fetchCloudProjects = async (userId, token) => {
       try {
           const res = await fetch(`${BACKEND_URL}/api/get-projects?userId=${userId}`, { headers: { 'Authorization': `Bearer ${token}` }});
           const data = await res.json();
           if (data.success) setProjects(data.data);
-      } catch (err) { console.error("Cloud Sync Error"); }
+      } catch (err) {}
   };
 
   useEffect(() => {
@@ -110,7 +93,7 @@ export default function App() {
   const saveCurrentProject = async () => {
       if (!currentUser) return setIsAuthModalOpen(true);
       if (Object.keys(generatedFiles).length === 0) return alert("No code generated yet!");
-      setTerminalOutput(prev => prev + `\n> ⏳ Syncing project to Mantu Cloud DB...`);
+      setTerminalOutput(prev => prev + `\n> ⏳ Syncing project to Mantu DB...`);
       setIsConsoleOpen(true);
       try {
           const res = await fetch(`${BACKEND_URL}/api/save-project`, {
@@ -119,22 +102,22 @@ export default function App() {
           });
           const data = await res.json();
           if (data.success) {
-              setTerminalOutput(prev => prev + `\n> 💾 SUCCESS: Project saved to Cloud Database!`);
+              setTerminalOutput(prev => prev + `\n> 💾 SUCCESS: Project saved!`);
               fetchCloudProjects(currentUser.id, localStorage.getItem('mantu_token'));
           } else setTerminalOutput(prev => prev + `\n> ❌ Save Error: ${data.error}`);
-      } catch (err) { setTerminalOutput(prev => prev + `\n> ❌ Cloud Network Error while saving.`); }
+      } catch (err) {}
   };
 
   const handleAuthSuccess = (token, user) => {
       localStorage.setItem('mantu_token', token); localStorage.setItem('mantu_user', JSON.stringify(user));
       setCurrentUser(user); setIsAuthModalOpen(false);
-      setTerminalOutput(prev => prev + `\n> 🔓 Access Granted. Welcome, ${user.name}.`);
-      setIsConsoleOpen(true); fetchCloudProjects(user.id, token);
+      setTerminalOutput(prev => prev + `\n> 🔓 Welcome, ${user.name}.`);
+      fetchCloudProjects(user.id, token);
   };
 
   const handleLogout = () => {
       localStorage.removeItem('mantu_token'); localStorage.removeItem('mantu_user');
-      setCurrentUser(null); setProjects([]); setView('home'); setTerminalOutput("> Logged out successfully.");
+      setCurrentUser(null); setProjects([]); setView('home');
   };
 
   const loadProject = (proj) => {
@@ -144,32 +127,59 @@ export default function App() {
       setTerminalOutput(`> 📂 Restored Project: ${proj.title}`);
   };
 
-  // ==========================================
-  // 🚀 ENGINE & BUILD LOGIC (WITH HEARTBEAT FIX)
-  // ==========================================
+  // 🔥 NEW: Image Upload Handler
+  const handleImageUpload = (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = (event) => setUploadedImage(event.target.result);
+      reader.readAsDataURL(file);
+  };
+
+  const toggleListening = (targetInput) => {
+      if (isListening) { recognitionRef.current?.stop(); setIsListening(false); return; }
+      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+      if (!SpeechRecognition) return alert("Voice Typing not supported.");
+      const recognition = new SpeechRecognition();
+      recognition.continuous = true; recognition.interimResults = true;
+      let initialPrompt = targetInput === 'followUp' ? followUpPrompt : prompt;
+      recognition.onresult = (e) => {
+          let trans = ''; for (let i = 0; i < e.results.length; i++) trans += e.results[i][0].transcript;
+          if (targetInput === 'followUp') setFollowUpPrompt(initialPrompt + (initialPrompt ? ' ' : '') + trans);
+          else setPrompt(initialPrompt + (initialPrompt ? ' ' : '') + trans);
+      };
+      recognition.onerror = () => setIsListening(false); recognition.onend = () => setIsListening(false);
+      recognitionRef.current = recognition; recognition.start(); setIsListening(true);
+  };
+
   const triggerBuild = async (text, isFollowUp = false) => {
-      if (!text.trim()) return;
+      if (!text.trim() && !uploadedImage) return;
       if (!currentUser) return setIsAuthModalOpen(true); 
 
-      setIsGenerating(true); setView('editor'); setActiveTab('code'); setIsConsoleOpen(true); setDeployedUrl(null);
+      setIsGenerating(true); setView('editor'); setActiveTab('preview'); setIsConsoleOpen(true); setDeployedUrl(null);
       if (!isFollowUp) setGeneratedFiles({});
       
-      const newLogs = [...actionLogs, { id: Date.now(), type: 'user', text: text }];
-      newLogs.push({ id: Date.now()+1, type: 'log', agent: 'MANTU OS', status: 'Active', details: isFollowUp ? 'Processing update request...' : 'Initializing Enterprise Engine...' });
+      const newLogs = [...actionLogs, { id: Date.now(), type: 'user', text: text || "[Image Uploaded]" }];
+      newLogs.push({ id: Date.now()+1, type: 'log', agent: 'MANTU OS', status: 'Active', details: isFollowUp ? 'Processing update...' : 'Initializing AI Engines...' });
       setActionLogs(newLogs);
       
-      setTerminalOutput(prev => prev + (isFollowUp ? `\n> Processing follow-up request...` : `\n> Initializing Engine [Model: GROQ]...\n> Architecting NPM blueprint...`));
+      setTerminalOutput(prev => prev + (isFollowUp ? `\n> Processing follow-up...` : `\n> Initializing Engines...\n> Architecting Fullstack App...`));
+      
+      // Save data then clear input
+      const finalPrompt = text;
+      const finalImage = uploadedImage;
       if(isFollowUp) setFollowUpPrompt(''); else setPrompt('');
+      setUploadedImage(null); 
       
       try {
           const res = await fetch(`${BACKEND_URL}/api/build`, { 
               method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${localStorage.getItem('mantu_token')}` }, 
-              body: JSON.stringify({ prompt: text, existingFiles: isFollowUp ? generatedFiles : {} }) 
+              body: JSON.stringify({ prompt: finalPrompt, image: finalImage, existingFiles: isFollowUp ? generatedFiles : {} }) 
           });
           
           if (!res.ok) {
               const errData = await res.json().catch(()=>({}));
-              throw new Error(errData.error || `Server Error: Please try again or check API keys.`);
+              throw new Error(errData.error || `Server Error.`);
           }
           
           const reader = res.body.getReader(); const decoder = new TextDecoder();
@@ -185,8 +195,7 @@ export default function App() {
                   if (part.startsWith('data: ')) {
                       try {
                           const dataStr = part.replace('data: ', '');
-                          if(dataStr.trim() === 'keepalive') continue; // Ignore heartbeat
-
+                          if(dataStr.trim() === 'keepalive') continue; 
                           const data = JSON.parse(dataStr);
                           if (data.type === 'log') {
                               setTerminalOutput(prev => prev + `\n> [${data.agent}] ${data.details}`);
@@ -199,60 +208,36 @@ export default function App() {
                                   return updated;
                               });
                           } else if (data.type === 'done') {
-                              setTerminalOutput(prev => prev + `\n> 🎉 NPM Package Generation Complete!`);
-                              setActionLogs(prev => [...prev, { id: Date.now()+Math.random(), type: 'log', agent: 'SYSTEM', status: 'Done', details: 'NPM Files generated successfully!' }]);
+                              setTerminalOutput(prev => prev + `\n> 🎉 Generation Complete!`);
+                              setActionLogs(prev => [...prev, { id: Date.now()+Math.random(), type: 'log', agent: 'SYSTEM', status: 'Done', details: 'Successfully built.' }]);
                           }
                       } catch (err) {}
                   }
               }
           }
       } catch (error) { 
-          // Detailed Error Breakdown
-          setTerminalOutput(prev => prev + `\n> ❌ CRASH: ${error.message === 'Failed to fetch' ? 'Network Timeout. AI took too long. Try a shorter prompt.' : error.message}`); 
+          setTerminalOutput(prev => prev + `\n> ❌ CRASH: ${error.message}`); 
           setActionLogs(prev => [...prev, { id: Date.now(), type: 'log', agent: 'SYSTEM', status: 'Error', details: error.message }]);
       } finally { setIsGenerating(false); }
   };
 
-  // ==========================================
-  // 💻 LIVE PREVIEW BUNDLER
-  // ==========================================
   const renderLivePreview = () => {
       const fileKeys = Object.keys(generatedFiles);
-      const htmlKey = fileKeys.find(k => k.endsWith('index.html') || k.endsWith('.html'));
       const cssKey = fileKeys.find(k => k.endsWith('styles.css') || k.endsWith('index.css') || k.endsWith('App.css') || k.endsWith('global.css'));
       const reactKey = fileKeys.find(k => k.endsWith('App.jsx') || k.endsWith('main.jsx') || k.endsWith('index.jsx'));
 
-      let htmlFile = htmlKey ? generatedFiles[htmlKey] : `<!DOCTYPE html><html><head></head><body><div id="root"></div></body></html>`;
       let cssFile = cssKey ? generatedFiles[cssKey] : "";
-      let reactCode = reactKey ? generatedFiles[reactKey] : "";
-
-      if (!htmlFile.includes('id="root"')) htmlFile = htmlFile.replace('<body>', '<body><div id="root"></div>');
+      let reactCode = reactKey ? generatedFiles[reactKey] : "export default function App() { return <div className='p-10 text-center text-gray-400'>App Initialized. Generating Components...</div>; }";
 
       const envObj = {}; projectEnv.forEach(e => { if (e.key.trim()) envObj[e.key.trim()] = e.value.trim(); });
 
-      const reactImports = `
-        <script>window.mantuEnv = ${JSON.stringify(envObj)}; window.process = { env: window.mantuEnv };</script>
-        <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
-        <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
-        <script src="https://unpkg.com/babel-standalone@6/babel.min.js"></script>
-        <script src="https://cdn.tailwindcss.com"></script>
-        <style>${cssFile}</style>
-      `;
-
+      const reactImports = `<script>window.mantuEnv = ${JSON.stringify(envObj)}; window.process = { env: window.mantuEnv };</script><script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script><script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script><script src="https://unpkg.com/babel-standalone@6/babel.min.js"></script><script src="https://cdn.tailwindcss.com"></script><style>${cssFile}</style>`;
       let cleanReact = reactCode.replace(/import\s+.*?from\s+['"].*?['"];?/g, '').replace(/export\s+default\s+function/g, 'function');
-      let executeReact = reactCode ? `<script type="text/babel" data-type="module">${cleanReact} const rootElement = document.getElementById('root'); if(rootElement) { const root = ReactDOM.createRoot(rootElement); root.render(<App />); }</script>` : "";
+      let executeReact = `<script type="text/babel" data-type="module">${cleanReact} const rootElement = document.getElementById('root'); if(rootElement) { const root = ReactDOM.createRoot(rootElement); root.render(<App />); }</script>`;
 
-      if (htmlFile.includes('</head>')) htmlFile = htmlFile.replace('</head>', `${reactImports}</head>`);
-      else htmlFile = `<head>${reactImports}</head>${htmlFile}`;
-      if (htmlFile.includes('</body>')) htmlFile = htmlFile.replace('</body>', `${executeReact}</body>`);
-      else htmlFile = `${htmlFile}${executeReact}`;
-
-      return htmlFile;
+      return `<!DOCTYPE html><html><head>${reactImports}</head><body><div id="root"></div>${executeReact}</body></html>`;
   };
 
-  // ==========================================
-  // 🌍 DEPLOYMENT & DOMAIN LOGIC
-  // ==========================================
   const handlePemUpload = (e) => {
     const file = e.target.files[0];
     if (!file) return;
@@ -274,11 +259,10 @@ export default function App() {
         let payload = {};
         if (publishMethod === 'aws') payload = { targetIp: awsTargetIp, authKey: awsAuthKey };
         else if (publishMethod === 'github') payload = { githubToken: githubToken, repoName: repoName };
-        else if (publishMethod === 'domain') payload = { customDomain }; // Domain payload
+        else if (publishMethod === 'domain') payload = { customDomain };
+        else if (publishMethod === 'cloud') payload = { compiledHtml: renderLivePreview() };
 
-        // Switch to the correct API endpoint
         const endpoint = publishMethod === 'domain' ? 'setup-domain' : `publish-${publishMethod}`;
-        
         const res = await fetch(`${BACKEND_URL}/api/${endpoint}`, {
             method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${localStorage.getItem('mantu_token')}` },
             body: JSON.stringify(payload)
@@ -292,23 +276,20 @@ export default function App() {
                 setTerminalOutput(prev => prev + `\n> 🔗 URL: ${data.url}`);
             }
         } else setTerminalOutput(prev => prev + `\n> ⚠️ Error: ${data.error || data.message}`);
-    } catch(e) { setTerminalOutput(prev => prev + `\n> ❌ Network Error: Backend Unreachable.`); }
+    } catch(e) { setTerminalOutput(prev => prev + `\n> ❌ Network Error.`); }
   };
 
   const activeCode = generatedFiles[activeFile] || '';
   const lines = Array.from({length: Math.max(activeCode.split('\n').length, 1)}, (_, i) => i + 1);
   const handleCodeScroll = (e) => { if (lineNumbersRef.current) lineNumbersRef.current.scrollTop = e.target.scrollTop; };
 
-  // ==========================================
-  // 🎨 RENDER UI
-  // ==========================================
   return (
     <div className="h-[100dvh] w-full flex flex-col font-sans overflow-hidden bg-[#050505] text-white relative">
       <style dangerouslySetInnerHTML={{__html: globalStyles}} />
       <AuthModal isOpen={isAuthModalOpen} onClose={() => setIsAuthModalOpen(false)} onSuccess={handleAuthSuccess} backendUrl={BACKEND_URL} />
 
       <div className="w-full bg-blue-900/20 border-b border-blue-900/50 text-blue-400 text-[10px] font-mono py-1.5 flex overflow-hidden whitespace-nowrap shrink-0 z-30">
-           <div className="animate-marquee inline-block">🚀 User_92 pushed to GitHub in 2s... &nbsp; | &nbsp; ⚡ Mantu Native NPM Architecture Active... &nbsp; | &nbsp; 🧠 Llama-3 Enterprise Engine Active... &nbsp; | &nbsp; 🌍 Connected to AWS us-east-1...</div>
+           <div className="animate-marquee inline-block">🚀 User_92 deployed to GitHub... &nbsp; | &nbsp; ⚡ Mantu React Compiler Active... &nbsp; | &nbsp; 🧠 Enterprise Multimodal Engine Active... </div>
       </div>
 
       <nav className="h-14 flex items-center justify-between px-6 border-b border-[#1f1f23] bg-[#0a0a0c]/80 backdrop-blur-md shrink-0 z-20">
@@ -318,10 +299,7 @@ export default function App() {
            {currentUser ? (
                <div className="flex items-center gap-4">
                    <div className="hidden md:flex items-center gap-2 text-[11px] font-bold bg-green-500/10 text-green-500 border border-green-500/20 px-3 py-1 rounded-full"><SparkleIcon/> Credits: {currentUser.credits || 10}</div>
-                   
-                   {/* NEW: Global Project History Button */}
                    <button onClick={() => setIsHistoryModalOpen(true)} className="flex items-center gap-1.5 text-xs text-gray-400 hover:text-white transition"><HistoryIcon/> <span className="hidden sm:block">History</span></button>
-                   
                    <div className="flex items-center gap-2 text-gray-300 border-l border-[#2b2b36] pl-4 ml-2"><UserIcon/> <span className="text-xs font-bold">{currentUser.name}</span></div>
                    <button onClick={handleLogout} className="text-xs text-red-400 hover:text-red-300 ml-2 font-bold">Logout</button>
                </div>
@@ -329,18 +307,35 @@ export default function App() {
         </div>
       </nav>
 
-      {/* NEW: KILLER HERO SECTION */}
       {view === 'home' ? (
         <div className="flex-1 flex flex-col items-center pt-20 p-4 overflow-y-auto relative z-10 custom-scrollbar">
             <div className="absolute inset-0 pointer-events-none z-[-1] overflow-hidden"><div className="absolute inset-0 bg-[linear-gradient(to_right,#1f1f23_1px,transparent_1px),linear-gradient(to_bottom,#1f1f23_1px,transparent_1px)] bg-[size:4rem_4rem] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_100%)] opacity-30"></div><div className="absolute top-[10%] left-[20%] w-[30%] h-[30%] bg-blue-600/20 blur-[120px] rounded-full animate-pulse"></div><div className="absolute bottom-[20%] right-[20%] w-[30%] h-[30%] bg-purple-600/20 blur-[120px] rounded-full animate-pulse" style={{animationDelay: '2s'}}></div></div>
-            
-            <div className="inline-block px-4 py-1.5 rounded-full border border-blue-500/30 bg-blue-500/10 text-blue-400 text-[10px] font-bold tracking-widest mb-6"><SparkleIcon className="inline mr-2"/> MANTU OS 4.0 ENTERPRISE</div>
+            <div className="inline-block px-4 py-1.5 rounded-full border border-blue-500/30 bg-blue-500/10 text-blue-400 text-[10px] font-bold tracking-widest mb-6"><SparkleIcon className="inline mr-2"/> MULTIMODAL ENGINE ACTIVE</div>
             <h1 className="text-5xl md:text-7xl font-black mb-6 text-center tracking-tighter">Code to <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 via-indigo-500 to-purple-600">Cloud</span> in Seconds</h1>
-            <p className="text-gray-400 mb-10 max-w-xl text-center text-sm md:text-base leading-relaxed">Turn your ideas into live Enterprise Applications instantly. Mantu AI architects the NPM workspace, bundles the project, and deploys it to the world.</p>
+            <p className="text-gray-400 mb-10 max-w-xl text-center text-sm md:text-base leading-relaxed">Turn ideas (or images!) into live Apps. Upload a UI screenshot or describe it. Mantu AI will build it instantly.</p>
             
-            <div className="w-full max-w-3xl bg-[#0d0d12]/80 backdrop-blur-xl border border-[#2b2b36] rounded-2xl flex flex-col shadow-2xl transition-all duration-300 focus-within:border-blue-500 focus-within:shadow-[0_0_30px_rgba(59,130,246,0.2)] hover:border-[#3b3b46]">
-                <textarea value={prompt} onChange={(e) => setPrompt(e.target.value)} placeholder="e.g. Build an AI Video Generator Dashboard like Sora..." className="w-full bg-transparent border-none outline-none p-6 resize-none min-h-[140px] text-lg text-white placeholder-gray-600" onKeyDown={(e) => { if(e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); triggerBuild(prompt, false); } }} />
-                <div className="flex items-center justify-between p-4 border-t border-[#1f1f23]"><div className="flex gap-4 px-2 text-gray-500"><button onClick={()=>toggleListening('new')} className={`hover:text-white transition ${isListening?'text-red-500 animate-pulse':''}`}><MicIcon/></button></div><button onClick={() => triggerBuild(prompt, false)} disabled={isGenerating} className="bg-white text-black hover:bg-gray-200 px-8 py-2.5 rounded-xl font-extrabold flex items-center gap-2 transition shadow-[0_0_20px_rgba(255,255,255,0.2)]">{isGenerating ? <span className="animate-spin">🌀</span> : <SparkleIcon/>} {isGenerating ? 'Architecting...' : 'Generate App'}</button></div>
+            <div className="w-full max-w-3xl bg-[#0d0d12]/80 backdrop-blur-xl border border-[#2b2b36] rounded-2xl flex flex-col shadow-2xl transition-all duration-300 focus-within:border-blue-500 focus-within:shadow-[0_0_30px_rgba(59,130,246,0.2)] hover:border-[#3b3b46] relative p-1">
+                {/* 🔥 NEW: Image Preview Area */}
+                {uploadedImage && (
+                    <div className="absolute top-4 right-4 z-10">
+                        <div className="relative border border-[#2b2b36] rounded-lg overflow-hidden w-20 h-20 shadow-lg">
+                            <img src={uploadedImage} alt="Reference UI" className="w-full h-full object-cover opacity-80" />
+                            <button onClick={() => setUploadedImage(null)} className="absolute top-1 right-1 bg-black/70 text-white rounded-full p-1 hover:bg-red-500 transition"><CloseIcon/></button>
+                        </div>
+                    </div>
+                )}
+
+                <textarea value={prompt} onChange={(e) => setPrompt(e.target.value)} placeholder="e.g. Build an exact clone of the uploaded image UI..." className="w-full bg-transparent border-none outline-none p-5 resize-none min-h-[140px] text-lg text-white placeholder-gray-600" onKeyDown={(e) => { if(e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); triggerBuild(prompt, false); } }} />
+                
+                <div className="flex items-center justify-between p-3 border-t border-[#1f1f23]">
+                    <div className="flex gap-4 px-2 text-gray-500">
+                        <button onClick={()=>toggleListening('new')} className={`hover:text-white transition ${isListening?'text-red-500 animate-pulse':''}`}><MicIcon/></button>
+                        {/* 🔥 NEW: Image Upload Logic */}
+                        <button onClick={() => fileInputRef.current.click()} className="hover:text-white transition" title="Upload Reference UI Image"><ImageIcon/></button>
+                        <input type="file" accept="image/*" ref={fileInputRef} className="hidden" onChange={handleImageUpload} />
+                    </div>
+                    <button onClick={() => triggerBuild(prompt, false)} disabled={isGenerating} className="bg-white text-black hover:bg-gray-200 px-8 py-2.5 rounded-xl font-extrabold flex items-center gap-2 transition shadow-[0_0_20px_rgba(255,255,255,0.2)]">{isGenerating ? <span className="animate-spin">🌀</span> : <SparkleIcon/>} {isGenerating ? 'Architecting...' : 'Generate App'}</button>
+                </div>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-12 w-full max-w-3xl z-10">{[ {icon: '📈', title: 'Crypto Dashboard', desc: 'NPM React workspace'}, {icon: '🛒', title: 'E-Commerce Store', desc: 'Vite + React structure'}, {icon: '🎬', title: 'Video SaaS App', desc: 'Enterprise architecture'} ].map((card, i) => (<div key={i} onClick={() => setPrompt(`Build a ${card.title} with ${card.desc.toLowerCase()}`)} className="bg-white/5 backdrop-blur-md border border-white/10 p-5 rounded-xl cursor-pointer hover:-translate-y-1 hover:bg-white/10 hover:border-blue-500/50 transition-all duration-300"><div className="text-2xl mb-3">{card.icon}</div><div className="font-bold text-sm text-white">{card.title}</div><div className="text-[11px] text-gray-400 mt-1">{card.desc}</div></div>))}</div>
         </div>
@@ -348,15 +343,15 @@ export default function App() {
         <div className="flex-1 flex flex-col overflow-hidden">
             <div className="h-12 bg-[#0d0d12] border-b border-[#1f1f23] flex items-center justify-between px-4 shrink-0 overflow-x-auto custom-scrollbar">
                 <div className="flex gap-1 bg-[#1a1a24] p-1 rounded-lg shrink-0">
-                    <button onClick={()=>setActiveTab('preview')} className={`px-4 py-1 text-xs font-bold rounded flex items-center gap-2 ${activeTab === 'preview' ? 'bg-[#2b2b36] text-white shadow' : 'text-gray-400 hover:text-white transition'}`}><PlayIcon/> Live Preview</button>
-                    <button onClick={()=>setActiveTab('code')} className={`px-4 py-1 text-xs font-bold rounded flex items-center gap-2 ${activeTab === 'code' ? 'bg-[#2b2b36] text-white shadow' : 'text-gray-400 hover:text-white transition'}`}><CodeIcon/> View NPM Files</button>
+                    <button onClick={()=>setActiveTab('preview')} className={`px-4 py-1 text-xs font-bold rounded flex items-center gap-2 ${activeTab === 'preview' ? 'bg-[#2b2b36] text-white shadow' : 'text-gray-400 hover:text-white transition'}`}><PlayIcon/> Live UI Preview</button>
+                    <button onClick={()=>setActiveTab('code')} className={`px-4 py-1 text-xs font-bold rounded flex items-center gap-2 ${activeTab === 'code' ? 'bg-[#2b2b36] text-white shadow' : 'text-gray-400 hover:text-white transition'}`}><CodeIcon/> Code (Python/React)</button>
                 </div>
                 <div className="flex gap-2 shrink-0">
-                    {deployedUrl && (<a href={deployedUrl} target="_blank" rel="noreferrer" className="px-3 py-1.5 text-xs font-bold bg-green-500/10 text-green-400 border border-green-500/50 hover:bg-green-500/20 rounded flex items-center gap-2 transition"><LinkIcon/> Open URL</a>)}
+                    {deployedUrl && (<a href={deployedUrl} target="_blank" rel="noreferrer" className="px-3 py-1.5 text-xs font-bold bg-green-500/10 text-green-400 border border-green-500/50 hover:bg-green-500/20 rounded flex items-center gap-2 transition"><LinkIcon/> Open App</a>)}
                     <button onClick={saveCurrentProject} className="px-3 py-1.5 text-xs font-bold bg-[#1a1a24] text-blue-400 border border-blue-900/50 hover:bg-blue-900/20 rounded flex items-center gap-2 transition"><CloudIcon/> Save</button>
-                    <button onClick={() => setIsConsoleOpen(!isConsoleOpen)} className={`px-3 py-1.5 text-xs font-bold rounded flex items-center gap-2 transition ${isConsoleOpen ? 'bg-[#2b2b36] text-white' : 'bg-[#1a1a24] text-gray-300 hover:bg-[#2b2b36]'}`}><TerminalIcon/> _Console</button>
+                    <button onClick={() => setIsConsoleOpen(!isConsoleOpen)} className={`px-3 py-1.5 text-xs font-bold rounded flex items-center gap-2 transition ${isConsoleOpen ? 'bg-[#2b2b36] text-white' : 'bg-[#1a1a24] text-gray-300 hover:bg-[#2b2b36]'}`}><TerminalIcon/> Logs</button>
                     <button onClick={() => setIsEnvModalOpen(true)} className="px-3 py-1.5 text-xs font-bold bg-yellow-500/10 text-yellow-500 border border-yellow-500/20 hover:bg-yellow-500/20 rounded flex items-center gap-2 transition"><LockIcon/> Env Keys</button>
-                    <button onClick={() => setIsPublishModalOpen(true)} className="px-4 py-1.5 text-xs font-bold bg-white text-black hover:bg-gray-200 rounded flex items-center gap-2 shadow transition"><CloudIcon/> Publish App</button>
+                    <button onClick={() => setIsPublishModalOpen(true)} className="px-4 py-1.5 text-xs font-bold bg-white text-black hover:bg-gray-200 rounded flex items-center gap-2 shadow transition"><CloudIcon/> Deploy App</button>
                 </div>
             </div>
 
@@ -372,14 +367,13 @@ export default function App() {
                     <div className="flex-1 overflow-hidden relative">
                         {activeTab === 'code' ? (
                             <div className="flex h-full w-full bg-[#1e1e1e] text-[#d4d4d4] font-mono text-[13px] overflow-hidden"><div ref={lineNumbersRef} className="w-12 bg-[#1e1e1e] border-r border-[#333333] text-[#858585] flex flex-col items-end pr-3 py-4 select-none overflow-hidden" style={{lineHeight: '21px'}}>{lines.map(l => <div key={l}>{l}</div>)}</div><textarea ref={codeTextareaRef} value={activeCode} onChange={(e) => setGeneratedFiles(prev => ({ ...prev, [activeFile]: e.target.value }))} onScroll={handleCodeScroll} className="flex-1 bg-transparent text-[#9cdcfe] p-4 outline-none resize-none whitespace-pre overflow-auto custom-scrollbar" style={{lineHeight: '21px', tabSize: 4}} spellCheck="false" /></div>
-                        ) : (<div className="w-full h-full bg-white flex items-center justify-center">{Object.keys(generatedFiles).length > 0 ? (<iframe srcDoc={renderLivePreview()} className="w-full h-full border-none" sandbox="allow-scripts allow-same-origin" title="preview" />) : (<div className="text-gray-400 flex flex-col items-center gap-3"><SparkleIcon/> <span>No preview available.</span></div>)}</div>)}
+                        ) : (<div className="w-full h-full bg-white flex items-center justify-center">{Object.keys(generatedFiles).length > 0 ? (<iframe srcDoc={renderLivePreview()} className="w-full h-full border-none" sandbox="allow-scripts allow-same-origin" title="preview" />) : (<div className="text-gray-400 flex flex-col items-center gap-3"><SparkleIcon/> <span>{isGenerating ? 'AI Engine Processing...' : 'No preview available.'}</span></div>)}</div>)}
                     </div>
                 </div>
             </div>
         </div>
       )}
 
-      {/* AUTO-SCROLLING CONSOLE */}
       {view === 'editor' && (
           <div className={`w-full transition-all duration-300 z-40 bg-[#0a0a0c] border-t border-[#1f1f23] shrink-0 ${isConsoleOpen ? 'h-56' : 'h-8'}`}>
               <div className="flex items-center justify-between px-4 h-8 cursor-pointer hover:bg-[#1a1a24]" onClick={() => setIsConsoleOpen(!isConsoleOpen)}><div className="text-[10px] font-bold text-gray-400 flex items-center gap-2 uppercase"><TerminalIcon/> DEPLOYMENT LOGS</div><button className="text-gray-500 hover:text-white">{isConsoleOpen ? '▼' : '▲'}</button></div>
@@ -387,29 +381,36 @@ export default function App() {
           </div>
       )}
 
-      {/* PUBLISH & DOMAIN MODAL */}
       {isPublishModalOpen && (
           <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
               <div className="bg-[#111116] border border-[#2b2b2b] w-full max-w-4xl rounded-xl overflow-hidden shadow-2xl flex flex-col md:flex-row min-h-[450px]">
                   <div className="w-full md:w-1/3 bg-[#0a0a0c] border-r border-[#1f1f23] flex flex-col">
                       <div className="p-5 border-b border-[#1f1f23] flex items-center gap-2"><CloudIcon /> <h3 className="font-bold text-sm">Deployment Center</h3></div>
                       <div className="p-3 flex flex-col gap-2 flex-1">
-                          <button onClick={() => setPublishMethod('cloud')} className={`p-3 text-left rounded-lg transition ${publishMethod === 'cloud' ? 'bg-[#1a40af]/20 border border-blue-600 text-blue-500' : 'text-gray-400 hover:bg-[#1a1a24]'}`}><div className="font-bold text-xs flex items-center gap-2"><CloudIcon/> Netlify Cloud</div><div className="text-[10px] mt-1 opacity-70">Push raw NPM files</div></button>
-                          <button onClick={() => setPublishMethod('aws')} className={`p-3 text-left rounded-lg transition ${publishMethod === 'aws' ? 'bg-orange-500/10 border border-orange-500/50 text-orange-500' : 'text-gray-400 hover:bg-[#1a1a24]'}`}><div className="font-bold text-xs flex items-center gap-2"><ServerIcon/> AWS EC2 Server</div><div className="text-[10px] mt-1 opacity-70">Deploy to own instance</div></button>
-                          <button onClick={() => setPublishMethod('github')} className={`p-3 text-left rounded-lg transition ${publishMethod === 'github' ? 'bg-gray-800 border border-gray-600 text-white' : 'text-gray-400 hover:bg-[#1a1a24]'}`}><div className="font-bold text-xs flex items-center gap-2"><GithubIcon/> GitHub Repo</div><div className="text-[10px] mt-1 opacity-70">Push code to Git</div></button>
-                          {/* NEW: DOMAIN TAB */}
-                          <button onClick={() => setPublishMethod('domain')} className={`p-3 text-left rounded-lg transition ${publishMethod === 'domain' ? 'bg-green-500/10 border border-green-500/50 text-green-500' : 'text-gray-400 hover:bg-[#1a1a24]'}`}><div className="font-bold text-xs flex items-center gap-2"><GlobeIcon/> Custom Domain</div><div className="text-[10px] mt-1 opacity-70">Link your .com or .in</div></button>
+                          <button onClick={() => setPublishMethod('github')} className={`p-3 text-left rounded-lg transition ${publishMethod === 'github' ? 'bg-[#1a40af]/20 border border-blue-600 text-blue-500' : 'text-gray-400 hover:bg-[#1a1a24]'}`}><div className="font-bold text-xs flex items-center gap-2"><GithubIcon/> GitHub GitOps</div><div className="text-[10px] mt-1 opacity-70">Auto-triggers Vercel/Netlify</div></button>
+                          <button onClick={() => setPublishMethod('cloud')} className={`p-3 text-left rounded-lg transition ${publishMethod === 'cloud' ? 'bg-[#1a40af]/20 border border-blue-600 text-blue-500' : 'text-gray-400 hover:bg-[#1a1a24]'}`}><div className="font-bold text-xs flex items-center gap-2"><CloudIcon/> Netlify Preview</div><div className="text-[10px] mt-1 opacity-70">Deploy HTML preview</div></button>
+                          <button onClick={() => setPublishMethod('aws')} className={`p-3 text-left rounded-lg transition ${publishMethod === 'aws' ? 'bg-orange-500/10 border border-orange-500/50 text-orange-500' : 'text-gray-400 hover:bg-[#1a1a24]'}`}><div className="font-bold text-xs flex items-center gap-2"><ServerIcon/> AWS EC2 Auto</div><div className="text-[10px] mt-1 opacity-70">CTO deployment</div></button>
                       </div>
                   </div>
                   <div className="w-full md:w-2/3 bg-[#111116] p-8 flex flex-col relative">
                       <button onClick={() => setIsPublishModalOpen(false)} className="absolute top-4 right-4 text-gray-500 hover:text-white transition"><CloseIcon/></button>
-                      
+
+                      {publishMethod === 'github' && (
+                          <div className="flex flex-col h-full mt-2">
+                              <h4 className="text-white font-bold text-lg mb-4">True GitOps Deployment</h4>
+                              <p className="text-sm text-gray-400 mb-6">Mantu OS will push your <b>Python Backend</b> and <b>React Frontend</b> to GitHub. Once pushed, Vercel & Netlify will auto-deploy them from the repo.</p>
+                              <div className="mb-5"><label className="text-xs text-gray-400 font-bold mb-1.5 block uppercase tracking-wider">GitHub Personal Access Token</label><input type="password" value={githubToken} onChange={(e) => setGithubToken(e.target.value)} placeholder="ghp_xxxxxxxxxxxxxxxxxxxxxxxx" className="w-full bg-[#0A0A0E] border border-[#2b2b2b] rounded-lg p-3 text-sm text-white outline-none focus:border-gray-500 transition" /></div>
+                              <div className="mb-6"><label className="text-xs text-gray-400 font-bold mb-1.5 block uppercase tracking-wider">Repository Name</label><input type="text" value={repoName} onChange={(e) => setRepoName(e.target.value)} placeholder="my-fullstack-app" className="w-full bg-[#0A0A0E] border border-[#2b2b2b] rounded-lg p-3 text-sm text-white outline-none focus:border-gray-500 transition" /></div>
+                              <button onClick={handlePublish} className="mt-auto w-full bg-blue-600 hover:bg-blue-500 text-white py-3.5 rounded-xl font-bold text-sm shadow-lg transition flex items-center justify-center gap-2"><GithubIcon/> Push & Trigger Deployments</button>
+                          </div>
+                      )}
+
                       {publishMethod === 'cloud' && (
                           <div className="flex flex-col h-full mt-4 justify-center items-center text-center">
                               <div className="bg-blue-500/10 p-4 rounded-full mb-4 text-blue-500"><CloudIcon /></div>
-                              <h4 className="text-white font-black text-xl mb-2">Deploy to Global Edge</h4>
-                              <p className="text-gray-400 text-sm mb-8 max-w-sm">Upload your raw NPM structure instantly. Connect your GitHub later to trigger automated Vite CI/CD builds.</p>
-                              <button onClick={handlePublish} className="w-full max-w-xs bg-blue-600 hover:bg-blue-500 text-white py-3.5 rounded-xl font-bold text-sm transition flex justify-center items-center gap-2"><CloudIcon/> Upload NPM Files</button>
+                              <h4 className="text-white font-black text-xl mb-2">Deploy Preview to Cloud</h4>
+                              <p className="text-gray-400 text-sm mb-8 max-w-sm">This instantly deploys your Live Preview to Netlify so you can share it immediately.</p>
+                              <button onClick={handlePublish} className="w-full max-w-xs bg-blue-600 hover:bg-blue-500 text-white py-3.5 rounded-xl font-bold text-sm transition flex justify-center items-center gap-2"><CloudIcon/> Upload to Cloud</button>
                           </div>
                       )}
 
@@ -422,125 +423,54 @@ export default function App() {
                               <button onClick={handlePublish} className="mt-auto w-full bg-orange-600 hover:bg-orange-500 text-white py-3.5 rounded-xl font-bold text-sm shadow-lg transition flex items-center justify-center gap-2"><ServerIcon/> Mount to Server</button>
                           </div>
                       )}
-
-                      {publishMethod === 'github' && (
-                          <div className="flex flex-col h-full mt-2">
-                              <h4 className="text-white font-bold text-lg mb-6">GitHub Integration</h4>
-                              <div className="mb-5"><label className="text-xs text-gray-400 font-bold mb-1.5 block uppercase tracking-wider">Personal Access Token (Classic)</label><input type="password" value={githubToken} onChange={(e) => setGithubToken(e.target.value)} placeholder="ghp_xxxxxxxxxxxxxxxxxxxxxxxx" className="w-full bg-[#0A0A0E] border border-[#2b2b2b] rounded-lg p-3 text-sm text-white outline-none focus:border-gray-500 transition" /><p className="text-[10px] text-gray-500 mt-2">Required scopes: <span className="text-gray-300 bg-gray-800 px-1 py-0.5 rounded">repo</span> and <span className="text-gray-300 bg-gray-800 px-1 py-0.5 rounded">workflow</span>.</p></div>
-                              <div className="mb-6"><label className="text-xs text-gray-400 font-bold mb-1.5 block uppercase tracking-wider">Repository Name</label><input type="text" value={repoName} onChange={(e) => setRepoName(e.target.value)} placeholder="my-mantu-startup" className="w-full bg-[#0A0A0E] border border-[#2b2b2b] rounded-lg p-3 text-sm text-white outline-none focus:border-gray-500 transition" /></div>
-                              <button onClick={handlePublish} className="mt-auto w-full bg-white text-black hover:bg-gray-200 py-3.5 rounded-xl font-bold text-sm shadow-lg transition flex items-center justify-center gap-2"><GithubIcon/> Push to Repository</button>
-                          </div>
-                      )}
-
-                      {/* NEW: CUSTOM DOMAIN UI */}
-                      {publishMethod === 'domain' && (
-                          <div className="flex flex-col h-full mt-2">
-                              <h4 className="text-white font-bold text-lg mb-2">Connect Custom Domain</h4>
-                              <p className="text-sm text-gray-400 mb-6">Map your existing domain to your Mantu Cloud deployment.</p>
-                              <div className="mb-6">
-                                  <label className="text-xs text-gray-400 font-bold mb-1.5 block uppercase tracking-wider">Domain Name</label>
-                                  <div className="relative">
-                                      <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none"><GlobeIcon className="text-gray-500"/></div>
-                                      <input type="text" value={customDomain} onChange={(e) => setCustomDomain(e.target.value)} placeholder="www.my-startup.com" className="w-full bg-[#0A0A0E] border border-[#2b2b2b] rounded-lg p-3 pl-10 text-sm text-white outline-none focus:border-green-500 transition" />
-                                  </div>
-                              </div>
-                              <div className="bg-yellow-500/10 border border-yellow-500/20 p-4 rounded-xl mb-6">
-                                  <h5 className="text-xs font-bold text-yellow-500 mb-2">DNS Configuration Required</h5>
-                                  <p className="text-[10px] text-gray-400">Add the following CNAME record in your domain registrar (GoDaddy, Namecheap, etc.):</p>
-                                  <div className="mt-3 flex items-center justify-between bg-black/50 p-2 rounded border border-[#2b2b2b]">
-                                      <span className="text-[11px] font-mono text-gray-300">Name: <b>www</b></span>
-                                      <span className="text-[11px] font-mono text-green-400">Target: <b>mantu-router.edge.net</b></span>
-                                  </div>
-                              </div>
-                              <button onClick={handlePublish} className="mt-auto w-full bg-green-600 hover:bg-green-500 text-white py-3.5 rounded-xl font-bold text-sm shadow-lg transition flex items-center justify-center gap-2"><GlobeIcon/> Verify & Connect Domain</button>
-                          </div>
-                      )}
                   </div>
               </div>
           </div>
       )}
 
-      {/* 🔐 PRO ENV VARIABLES MODAL */}
+      {/* SECRETS MANAGER */}
       {isEnvModalOpen && (
           <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
               <div className="bg-[#111116] border border-[#2b2b2b] w-full max-w-lg rounded-2xl overflow-hidden shadow-2xl">
                   <div className="p-5 border-b border-[#2b2b2b] flex justify-between items-center bg-gradient-to-r from-yellow-500/10 to-transparent">
-                      <div>
-                          <h3 className="text-lg font-bold text-white flex items-center gap-2"><LockIcon className="text-yellow-500"/> Secrets Manager</h3>
-                          <p className="text-[10px] text-gray-500 mt-1">Environment variables for your NPM workspace.</p>
-                      </div>
+                      <div><h3 className="text-lg font-bold text-white flex items-center gap-2"><LockIcon className="text-yellow-500"/> Secrets Manager</h3><p className="text-[10px] text-gray-500 mt-1">Environment variables for your NPM workspace.</p></div>
                       <button onClick={() => setIsEnvModalOpen(false)} className="text-gray-400 hover:text-white bg-[#1a1a24] p-2 rounded-full"><CloseIcon/></button>
                   </div>
                   <div className="p-6 flex flex-col gap-4 max-h-[60vh] overflow-y-auto custom-scrollbar">
-                      <div className="flex gap-2 text-[10px] font-bold text-gray-500 uppercase tracking-wider">
-                          <div className="w-1/3 pl-1">Secret Key</div>
-                          <div className="flex-1 pl-1">Value</div>
-                      </div>
                       {projectEnv.map((env, i) => (
                           <div key={i} className="flex gap-2 items-center group">
-                              <input type="text" value={env.key||""} onChange={(e) => { const n = [...projectEnv]; n[i].key = e.target.value.toUpperCase(); setProjectEnv(n); }} placeholder="e.g. VITE_API_URL" className="w-1/3 bg-[#0A0A0E] border border-[#2b2b2b] rounded-lg p-2.5 text-xs text-white font-mono outline-none focus:border-yellow-500 transition" />
+                              <input type="text" value={env.key||""} onChange={(e) => { const n = [...projectEnv]; n[i].key = e.target.value.toUpperCase(); setProjectEnv(n); }} placeholder="e.g. API_URL" className="w-1/3 bg-[#0A0A0E] border border-[#2b2b2b] rounded-lg p-2.5 text-xs text-white font-mono outline-none focus:border-yellow-500 transition" />
                               <input type="password" value={env.value||""} onChange={(e) => { const n = [...projectEnv]; n[i].value = e.target.value; setProjectEnv(n); }} placeholder="******************" className="flex-1 bg-[#0A0A0E] border border-[#2b2b2b] rounded-lg p-2.5 text-xs text-white font-mono outline-none focus:border-yellow-500 transition" />
                               <button onClick={() => setProjectEnv(projectEnv.filter((_, idx) => idx !== i))} className="text-gray-600 hover:text-red-500 p-2 opacity-0 group-hover:opacity-100 transition"><CloseIcon/></button>
                           </div>
                       ))}
-                      <div className="flex gap-2 mt-2">
-                          <button onClick={() => setProjectEnv([...projectEnv, { key: 'VITE_SUPABASE_URL', value: '' }])} className="text-[10px] border border-[#2b2b2b] hover:border-gray-500 text-gray-400 px-3 py-1.5 rounded-full transition">+ Supabase</button>
-                          <button onClick={() => setProjectEnv([...projectEnv, { key: 'VITE_STRIPE_KEY', value: '' }])} className="text-[10px] border border-[#2b2b2b] hover:border-gray-500 text-gray-400 px-3 py-1.5 rounded-full transition">+ Stripe API</button>
-                      </div>
                       <button onClick={() => setProjectEnv([...projectEnv, { key: '', value: '' }])} className="text-xs text-yellow-500 font-bold w-max mt-2 hover:underline">+ Add Custom Variable</button>
                   </div>
-                  <div className="p-4 border-t border-[#2b2b2b] bg-[#0a0a0c]">
-                      <button onClick={() => setIsEnvModalOpen(false)} className="w-full bg-white text-black hover:bg-gray-200 py-3 rounded-xl font-bold text-sm transition shadow-lg">Save & Encrypt Keys</button>
-                  </div>
+                  <div className="p-4 border-t border-[#2b2b2b] bg-[#0a0a0c]"><button onClick={() => setIsEnvModalOpen(false)} className="w-full bg-white text-black hover:bg-gray-200 py-3 rounded-xl font-bold text-sm transition shadow-lg">Save & Encrypt Keys</button></div>
               </div>
           </div>
       )}
 
-      {/* 📜 PROJECT HISTORY MODAL (NEW) */}
+      {/* PROJECT HISTORY MODAL */}
       {isHistoryModalOpen && (
           <div className="fixed inset-0 bg-black/80 flex items-center justify-end z-50 transition-opacity">
               <div className="bg-[#111116] border-l border-[#2b2b2b] w-full max-w-md h-full flex flex-col shadow-2xl animate-slide-in-right">
                   <div className="p-6 border-b border-[#1f1f23] flex justify-between items-center bg-[#0a0a0c]">
-                      <div>
-                          <h3 className="text-lg font-bold text-white flex items-center gap-2"><HistoryIcon/> Project History</h3>
-                          <p className="text-xs text-gray-500 mt-1">Access your previously synced workspaces.</p>
-                      </div>
+                      <div><h3 className="text-lg font-bold text-white flex items-center gap-2"><HistoryIcon/> Project History</h3></div>
                       <button onClick={() => setIsHistoryModalOpen(false)} className="text-gray-400 hover:text-white bg-[#1a1a24] p-2 rounded-full"><CloseIcon/></button>
                   </div>
                   <div className="flex-1 p-6 overflow-y-auto custom-scrollbar">
-                      {projects.length === 0 ? (
-                          <div className="text-center text-gray-500 mt-10">
-                              <CloudIcon className="mx-auto text-4xl mb-3 opacity-20"/>
-                              <p className="text-sm">No projects synced to cloud yet.</p>
+                      {projects.map((proj) => (
+                          <div key={proj._id} className="bg-[#1a1a24] border border-[#2b2b36] rounded-xl p-4 hover:border-blue-500/50 transition mb-3">
+                              <h4 className="font-bold text-sm text-white truncate pr-4">{proj.title}</h4>
+                              <button onClick={() => loadProject(proj)} className="mt-4 w-full bg-blue-600/20 text-blue-400 hover:bg-blue-600 hover:text-white text-xs font-bold py-2 rounded-lg transition">Load Workspace</button>
                           </div>
-                      ) : (
-                          <div className="flex flex-col gap-3">
-                              {projects.map((proj) => (
-                                  <div key={proj._id} className="bg-[#1a1a24] border border-[#2b2b36] rounded-xl p-4 hover:border-blue-500/50 transition group">
-                                      <div className="flex justify-between items-start mb-2">
-                                          <h4 className="font-bold text-sm text-white truncate pr-4">{proj.title}</h4>
-                                          <span className="text-[10px] bg-blue-500/10 text-blue-400 px-2 py-0.5 rounded">{Object.keys(proj.files).length} files</span>
-                                      </div>
-                                      <p className="text-xs text-gray-500 mb-4">{new Date(proj.createdAt).toLocaleDateString()}</p>
-                                      <div className="flex gap-2">
-                                          <button onClick={() => loadProject(proj)} className="flex-1 bg-blue-600/20 text-blue-400 hover:bg-blue-600 hover:text-white text-xs font-bold py-2 rounded-lg transition">Load Workspace</button>
-                                          {/* Note: Backend logic for ZIP download can be connected here later */}
-                                          <button onClick={() => alert("Zip download API coming soon!")} className="px-3 bg-gray-800 text-gray-400 hover:text-white rounded-lg transition"><CodeIcon/></button>
-                                      </div>
-                                  </div>
-                              ))}
-                          </div>
-                      )}
+                      ))}
                   </div>
               </div>
           </div>
       )}
-
-      {/* Animations for sidebar */}
-      <style dangerouslySetInnerHTML={{__html: `
-        @keyframes slideInRight { from { transform: translateX(100%); } to { transform: translateX(0); } }
-        .animate-slide-in-right { animation: slideInRight 0.3s cubic-bezier(0.16, 1, 0.3, 1); }
-      `}} />
+      <style dangerouslySetInnerHTML={{__html: `@keyframes slideInRight { from { transform: translateX(100%); } to { transform: translateX(0); } } .animate-slide-in-right { animation: slideInRight 0.3s cubic-bezier(0.16, 1, 0.3, 1); }`}} />
     </div>
   );
 }
