@@ -269,7 +269,7 @@ function MantuEngineApp() {
       } finally { setIsGenerating(false); }
   };
 
-  // 🔥 THE BILLION-DOLLAR POLYFILL PREVIEW ENGINE (100% BULLETPROOF)
+  // 🔥 THE BILLION-DOLLAR POLYFILL PREVIEW ENGINE (FIXED CONFIG CRASH)
   const renderLivePreview = () => {
       const fileKeys = Object.keys(generatedFiles);
       if (fileKeys.length === 0) {
@@ -279,23 +279,30 @@ function MantuEngineApp() {
       let combinedCss = "";
       fileKeys.filter(k => k.endsWith('.css')).forEach(k => combinedCss += generatedFiles[k] + "\n");
 
-      const jsxFiles = fileKeys.filter(k => (k.endsWith('.jsx') || k.endsWith('.js')));
+      // 🔥 CRITICAL FIX: Only compile actual React source files, NEVER run configs (vite.config.js) in the browser!
+      const jsxFiles = fileKeys.filter(k => {
+          if (!k.endsWith('.jsx') && !k.endsWith('.js')) return false;
+          if (k.includes('config.js') || k.includes('.config.')) return false; // Blocks vite.config.js, tailwind.config.js
+          if (k.includes('main.jsx') || k.includes('index.js') || k.includes('index.jsx')) return false; // Blocks entry points
+          return true;
+      });
+
+      // Ensure App.jsx renders last
       jsxFiles.sort((a, b) => a.includes('App.jsx') ? 1 : b.includes('App.jsx') ? -1 : 0); 
 
       let allJsxCode = "";
       jsxFiles.forEach(key => {
-          if(key.includes('main.jsx') || key.includes('index.js')) return; 
           let code = generatedFiles[key];
           if(!code) return;
           
-          // 🔥 MAGIC: Strip all imports aggressively so browser doesn't throw SyntaxError
+          // Strip imports so browser doesn't throw SyntaxError
+          code = code.replace(/import\s+.*?['"].*?['"];?/gs, ''); 
           code = code.replace(/import\s+[\s\S]*?from\s+['"].*?['"];?/g, '');
-          code = code.replace(/import\s+['"].*?['"];?/g, '');
           
-          // Clean exports to make functions globally accessible
-          code = code.replace(/export\s+default\s+function/g, 'function');
-          code = code.replace(/export\s+default\s+[a-zA-Z0-9_]+;?/g, ''); // Removes `export default App;`
-          code = code.replace(/export\s+/g, '');
+          // Clean exports to make components globally accessible
+          code = code.replace(/export\s+default\s+function\s+([a-zA-Z0-9_]+)/g, 'function $1');
+          code = code.replace(/export\s+default\s+[a-zA-Z0-9_]+;?/g, ''); 
+          code = code.replace(/export\s+(const|let|var|function)/g, '$1');
           
           allJsxCode += `\n/* --- ${key} --- */\n` + code;
       });
@@ -321,19 +328,13 @@ function MantuEngineApp() {
         <script src="https://cdn.tailwindcss.com"></script>
         
         <script>
-            // 🛠️ THE CTO POLYFILL: Globalize everything so stripped code finds it
+            // 🛠️ GLOBAL POLYFILL: Map React hooks globally so stripped code finds them
             window.React = React;
-            window.react = window.React; // Handle lowercase typose
-            
-            // Map all React hooks globally
             Object.keys(React).forEach(key => window[key] = React[key]);
             
-            // Map Lucide Icons globally
             if(window.lucideReact) {
                 Object.keys(window.lucideReact).forEach(key => window[key] = window.lucideReact[key]);
             }
-            
-            // Map React Router globally
             if(window.ReactRouterDOM) {
                 Object.keys(window.ReactRouterDOM).forEach(key => window[key] = window.ReactRouterDOM[key]);
             }
@@ -341,7 +342,6 @@ function MantuEngineApp() {
         <style>${combinedCss}</style>
       `;
 
-      // 🔥 Added data-presets="react,env" which fixes the Babel Compilation Error!
       let executeReact = `
         <script type="text/babel" data-presets="react,env">
           window.onerror = function(msg) {
@@ -565,7 +565,9 @@ function MantuEngineApp() {
           <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
               <div className="bg-[#111116] border border-[#2b2b2b] w-full max-w-lg rounded-2xl overflow-hidden shadow-2xl">
                   <div className="p-5 border-b border-[#2b2b2b] flex justify-between items-center bg-gradient-to-r from-yellow-500/10 to-transparent">
-                      <div><h3 className="text-lg font-bold text-white flex items-center gap-2"><LockIcon className="text-yellow-500"/> Secrets Manager</h3></div>
+                      <div>
+                          <h3 className="text-lg font-bold text-white flex items-center gap-2"><LockIcon className="text-yellow-500"/> Secrets Manager</h3>
+                      </div>
                       <button onClick={() => setIsEnvModalOpen(false)} className="text-gray-400 hover:text-white bg-[#1a1a24] p-2 rounded-full transition"><CloseIcon/></button>
                   </div>
                   <div className="p-6 flex flex-col gap-4 max-h-[60vh] overflow-y-auto custom-scrollbar">
@@ -578,7 +580,9 @@ function MantuEngineApp() {
                       ))}
                       <button onClick={() => setProjectEnv([...projectEnv, { key: '', value: '' }])} className="text-xs text-yellow-500 font-bold w-max mt-2 hover:underline">+ Add Variable</button>
                   </div>
-                  <div className="p-4 border-t border-[#2b2b2b] bg-[#0a0a0c]"><button onClick={() => setIsEnvModalOpen(false)} className="w-full bg-white text-black hover:bg-gray-200 py-3 rounded-xl font-bold text-sm shadow-lg transition">Save Keys</button></div>
+                  <div className="p-4 border-t border-[#2b2b2b] bg-[#0a0a0c]">
+                      <button onClick={() => setIsEnvModalOpen(false)} className="w-full bg-white text-black hover:bg-gray-200 py-3 rounded-xl font-bold text-sm shadow-lg transition">Save Keys</button>
+                  </div>
               </div>
           </div>
       )}
@@ -597,6 +601,7 @@ function MantuEngineApp() {
                           projects.map((proj) => (
                               <div key={proj._id} className="bg-[#1a1a24] border border-[#2b2b36] rounded-xl p-4 hover:border-blue-500/50 transition mb-3">
                                   <h4 className="font-bold text-sm text-white truncate pr-4">{proj.title}</h4>
+                                  <p className="text-[10px] text-gray-500 mt-1">{new Date(proj.createdAt).toLocaleString()}</p>
                                   <button onClick={() => loadProject(proj)} className="mt-4 w-full bg-blue-600/20 text-blue-400 hover:bg-blue-600 hover:text-white text-xs font-bold py-2 rounded-lg transition">Load Workspace</button>
                               </div>
                           ))
