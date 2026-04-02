@@ -35,7 +35,7 @@ export default function App() {
   const [projects, setProjects] = useState([]);
   const [prompt, setPrompt] = useState('');
   const [followUpPrompt, setFollowUpPrompt] = useState(''); 
-  const [uploadedImage, setUploadedImage] = useState(null); // NEW: Image State
+  const [uploadedImage, setUploadedImage] = useState(null); 
   
   const [view, setView] = useState('home'); 
   const [isGenerating, setIsGenerating] = useState(false);
@@ -50,10 +50,10 @@ export default function App() {
 
   const [isListening, setIsListening] = useState(false);
   const recognitionRef = useRef(null);
-  const fileInputRef = useRef(null); // NEW: File input ref
+  const fileInputRef = useRef(null); 
 
   const [isPublishModalOpen, setIsPublishModalOpen] = useState(false);
-  const [publishMethod, setPublishMethod] = useState('github'); 
+  const [publishMethod, setPublishMethod] = useState('cloud'); 
   const [awsInstanceType, setAwsInstanceType] = useState('cpu'); 
   const [awsTargetIp, setAwsTargetIp] = useState(""); 
   const [awsAuthKey, setAwsAuthKey] = useState(""); 
@@ -127,7 +127,6 @@ export default function App() {
       setTerminalOutput(`> 📂 Restored Project: ${proj.title}`);
   };
 
-  // 🔥 NEW: Image Upload Handler
   const handleImageUpload = (e) => {
       const file = e.target.files[0];
       if (!file) return;
@@ -165,7 +164,6 @@ export default function App() {
       
       setTerminalOutput(prev => prev + (isFollowUp ? `\n> Processing follow-up...` : `\n> Initializing Engines...\n> Architecting Fullstack App...`));
       
-      // Save data then clear input
       const finalPrompt = text;
       const finalImage = uploadedImage;
       if(isFollowUp) setFollowUpPrompt(''); else setPrompt('');
@@ -221,29 +219,67 @@ export default function App() {
       } finally { setIsGenerating(false); }
   };
 
+  // 🔥 THE ULTIMATE MULTI-COMPONENT PREVIEW ENGINE
   const renderLivePreview = () => {
       const fileKeys = Object.keys(generatedFiles);
-      const cssKey = fileKeys.find(k => k.endsWith('styles.css') || k.endsWith('index.css') || k.endsWith('App.css') || k.endsWith('global.css'));
-      const reactKey = fileKeys.find(k => k.endsWith('App.jsx') || k.endsWith('main.jsx') || k.endsWith('index.jsx'));
+      if (fileKeys.length === 0) return `<!DOCTYPE html><html><body style="background:#111; color:#888; display:flex; justify-content:center; align-items:center; height:100vh; font-family:sans-serif;">Wait, AI is Generating Files...</body></html>`;
 
-      let cssFile = cssKey ? generatedFiles[cssKey] : "";
-      let reactCode = reactKey ? generatedFiles[reactKey] : "export default function App() { return <div className='p-10 text-center text-gray-400'>App Initialized. Generating Components...</div>; }";
+      const cssFiles = fileKeys.filter(k => k.endsWith('.css'));
+      let combinedCss = "";
+      cssFiles.forEach(k => combinedCss += generatedFiles[k] + "\n");
+
+      // Extract all JSX/JS files
+      const jsxFiles = fileKeys.filter(k => k.endsWith('.jsx') || k.endsWith('.js'));
+      
+      // Sort so App.jsx is at the bottom
+      jsxFiles.sort((a, b) => a.includes('App.jsx') ? 1 : b.includes('App.jsx') ? -1 : 0);
+
+      let allJsxCode = "";
+      jsxFiles.forEach(key => {
+          if(key.includes('main.jsx') || key.includes('index.js')) return; // Skip entry files
+          
+          let code = generatedFiles[key];
+          // Strip all imports aggressively
+          code = code.replace(/import\s+[\s\S]*?from\s+['"].*?['"];?/g, '');
+          code = code.replace(/import\s+['"].*?['"];?/g, '');
+          
+          // Convert default exports to standard variables so Babel handles them
+          code = code.replace(/export\s+default\s+function/g, 'function');
+          code = code.replace(/export\s+(const|let|var|function)/g, '$1');
+          
+          allJsxCode += `\n/* --- ${key} --- */\n` + code;
+      });
 
       const envObj = {}; projectEnv.forEach(e => { if (e.key.trim()) envObj[e.key.trim()] = e.value.trim(); });
 
-      const reactImports = `<script>window.mantuEnv = ${JSON.stringify(envObj)}; window.process = { env: window.mantuEnv };</script><script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script><script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script><script src="https://unpkg.com/babel-standalone@6/babel.min.js"></script><script src="https://cdn.tailwindcss.com"></script><style>${cssFile}</style>`;
-      let cleanReact = reactCode.replace(/import\s+.*?from\s+['"].*?['"];?/g, '').replace(/export\s+default\s+function/g, 'function');
-      let executeReact = `<script type="text/babel" data-type="module">${cleanReact} const rootElement = document.getElementById('root'); if(rootElement) { const root = ReactDOM.createRoot(rootElement); root.render(<App />); }</script>`;
+      const reactImports = `
+        <script>window.mantuEnv = ${JSON.stringify(envObj)}; window.process = { env: window.mantuEnv };</script>
+        <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
+        <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
+        <script src="https://unpkg.com/babel-standalone@6/babel.min.js"></script>
+        <script src="https://cdn.tailwindcss.com"></script>
+        <style>${combinedCss}</style>
+      `;
 
-      return `<!DOCTYPE html><html><head>${reactImports}</head><body><div id="root"></div>${executeReact}</body></html>`;
-  };
+      let executeReact = `
+        <script type="text/babel" data-type="module">
+          // Catch rendering errors to display instead of white screen
+          window.addEventListener('error', (e) => {
+              const root = document.getElementById('root');
+              if(root) root.innerHTML = '<div style="color:#ff6b6b; padding:20px; background:#222; border-radius:8px; margin:20px; font-family:monospace;"><b>Preview Error:</b><br/>' + e.message + '</div>';
+          });
 
-  const handlePemUpload = (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = (ev) => setAwsAuthKey(ev.target.result);
-    reader.readAsText(file);
+          ${allJsxCode}
+
+          const rootElement = document.getElementById('root');
+          if(rootElement && typeof App !== 'undefined') {
+              const root = ReactDOM.createRoot(rootElement);
+              root.render(<App />);
+          }
+        </script>
+      `;
+
+      return `<!DOCTYPE html><html><head>${reactImports}</head><body class="bg-white"><div id="root"></div>${executeReact}</body></html>`;
   };
 
   const handlePublish = async () => {
@@ -260,23 +296,29 @@ export default function App() {
         if (publishMethod === 'aws') payload = { targetIp: awsTargetIp, authKey: awsAuthKey };
         else if (publishMethod === 'github') payload = { githubToken: githubToken, repoName: repoName };
         else if (publishMethod === 'domain') payload = { customDomain };
-        else if (publishMethod === 'cloud') payload = { compiledHtml: renderLivePreview() };
+        else if (publishMethod === 'cloud') {
+            payload = { compiledHtml: renderLivePreview() };
+        }
 
         const endpoint = publishMethod === 'domain' ? 'setup-domain' : `publish-${publishMethod}`;
         const res = await fetch(`${BACKEND_URL}/api/${endpoint}`, {
             method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${localStorage.getItem('mantu_token')}` },
             body: JSON.stringify(payload)
         });
+        
+        // Safety check for backend crash
+        if (!res.ok) throw new Error("Backend connection failed.");
+
         const data = await res.json();
         
         if(data.success) {
-            setTerminalOutput(prev => prev + `\n> ✅ Success: ${data.message}`);
+            setTerminalOutput(prev => prev + `\n> ✅ Success: ${data.message || 'Deployed!'}`);
             if (data.url) {
                 setDeployedUrl(data.url); 
                 setTerminalOutput(prev => prev + `\n> 🔗 URL: ${data.url}`);
             }
         } else setTerminalOutput(prev => prev + `\n> ⚠️ Error: ${data.error || data.message}`);
-    } catch(e) { setTerminalOutput(prev => prev + `\n> ❌ Network Error.`); }
+    } catch(e) { setTerminalOutput(prev => prev + `\n> ❌ Network Error. Server took too long or crashed.`); }
   };
 
   const activeCode = generatedFiles[activeFile] || '';
@@ -315,7 +357,6 @@ export default function App() {
             <p className="text-gray-400 mb-10 max-w-xl text-center text-sm md:text-base leading-relaxed">Turn ideas (or images!) into live Apps. Upload a UI screenshot or describe it. Mantu AI will build it instantly.</p>
             
             <div className="w-full max-w-3xl bg-[#0d0d12]/80 backdrop-blur-xl border border-[#2b2b36] rounded-2xl flex flex-col shadow-2xl transition-all duration-300 focus-within:border-blue-500 focus-within:shadow-[0_0_30px_rgba(59,130,246,0.2)] hover:border-[#3b3b46] relative p-1">
-                {/* 🔥 NEW: Image Preview Area */}
                 {uploadedImage && (
                     <div className="absolute top-4 right-4 z-10">
                         <div className="relative border border-[#2b2b36] rounded-lg overflow-hidden w-20 h-20 shadow-lg">
@@ -330,7 +371,6 @@ export default function App() {
                 <div className="flex items-center justify-between p-3 border-t border-[#1f1f23]">
                     <div className="flex gap-4 px-2 text-gray-500">
                         <button onClick={()=>toggleListening('new')} className={`hover:text-white transition ${isListening?'text-red-500 animate-pulse':''}`}><MicIcon/></button>
-                        {/* 🔥 NEW: Image Upload Logic */}
                         <button onClick={() => fileInputRef.current.click()} className="hover:text-white transition" title="Upload Reference UI Image"><ImageIcon/></button>
                         <input type="file" accept="image/*" ref={fileInputRef} className="hidden" onChange={handleImageUpload} />
                     </div>
@@ -428,7 +468,6 @@ export default function App() {
           </div>
       )}
 
-      {/* SECRETS MANAGER */}
       {isEnvModalOpen && (
           <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
               <div className="bg-[#111116] border border-[#2b2b2b] w-full max-w-lg rounded-2xl overflow-hidden shadow-2xl">
@@ -439,7 +478,7 @@ export default function App() {
                   <div className="p-6 flex flex-col gap-4 max-h-[60vh] overflow-y-auto custom-scrollbar">
                       {projectEnv.map((env, i) => (
                           <div key={i} className="flex gap-2 items-center group">
-                              <input type="text" value={env.key||""} onChange={(e) => { const n = [...projectEnv]; n[i].key = e.target.value.toUpperCase(); setProjectEnv(n); }} placeholder="e.g. API_URL" className="w-1/3 bg-[#0A0A0E] border border-[#2b2b2b] rounded-lg p-2.5 text-xs text-white font-mono outline-none focus:border-yellow-500 transition" />
+                              <input type="text" value={env.key||""} onChange={(e) => { const n = [...projectEnv]; n[i].key = e.target.value.toUpperCase(); setProjectEnv(n); }} placeholder="e.g. VITE_API_URL" className="w-1/3 bg-[#0A0A0E] border border-[#2b2b2b] rounded-lg p-2.5 text-xs text-white font-mono outline-none focus:border-yellow-500 transition" />
                               <input type="password" value={env.value||""} onChange={(e) => { const n = [...projectEnv]; n[i].value = e.target.value; setProjectEnv(n); }} placeholder="******************" className="flex-1 bg-[#0A0A0E] border border-[#2b2b2b] rounded-lg p-2.5 text-xs text-white font-mono outline-none focus:border-yellow-500 transition" />
                               <button onClick={() => setProjectEnv(projectEnv.filter((_, idx) => idx !== i))} className="text-gray-600 hover:text-red-500 p-2 opacity-0 group-hover:opacity-100 transition"><CloseIcon/></button>
                           </div>
@@ -451,7 +490,6 @@ export default function App() {
           </div>
       )}
 
-      {/* PROJECT HISTORY MODAL */}
       {isHistoryModalOpen && (
           <div className="fixed inset-0 bg-black/80 flex items-center justify-end z-50 transition-opacity">
               <div className="bg-[#111116] border-l border-[#2b2b2b] w-full max-w-md h-full flex flex-col shadow-2xl animate-slide-in-right">
