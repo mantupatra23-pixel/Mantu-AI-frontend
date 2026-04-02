@@ -69,6 +69,7 @@ const globalStyles = `
 function MantuEngineApp() {
   const BACKEND_URL = "https://visora-code.onrender.com"; 
   
+  // --- STATES ---
   const [currentUser, setCurrentUser] = useState(null);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
@@ -103,12 +104,14 @@ function MantuEngineApp() {
   const [projectEnv, setProjectEnv] = useState([{ key: '', value: '' }]);
   const [deployedUrl, setDeployedUrl] = useState(null); 
 
+  // --- REFS ---
   const consoleEndRef = useRef(null);
   const fileInputRef = useRef(null); 
   const codeTextareaRef = useRef(null);
   const lineNumbersRef = useRef(null);
   const recognitionRef = useRef(null);
 
+  // --- EFFECTS ---
   useEffect(() => {
       if (isConsoleOpen && consoleEndRef.current) consoleEndRef.current.scrollIntoView({ behavior: "smooth" });
   }, [terminalOutput, isConsoleOpen]);
@@ -128,6 +131,7 @@ function MantuEngineApp() {
       }
   }, []);
 
+  // --- FUNCTIONS ---
   const fetchCloudProjects = async (userId, token) => {
       try {
           const res = await fetch(`${BACKEND_URL}/api/get-projects?userId=${userId}`, { headers: { 'Authorization': `Bearer ${token}` }});
@@ -140,12 +144,14 @@ function MantuEngineApp() {
       localStorage.setItem('mantu_token', token); 
       localStorage.setItem('mantu_user', JSON.stringify(user));
       setCurrentUser(user); setIsAuthModalOpen(false);
+      setTerminalOutput(prev => prev + `\n> 🔓 Access Granted. Welcome, ${user.name}.`);
       fetchCloudProjects(user.id, token);
   };
 
   const handleLogout = () => {
       localStorage.removeItem('mantu_token'); localStorage.removeItem('mantu_user');
       setCurrentUser(null); setProjects([]); setView('home');
+      setTerminalOutput("> Logged out successfully.");
   };
 
   const saveCurrentProject = async () => {
@@ -263,7 +269,7 @@ function MantuEngineApp() {
       } finally { setIsGenerating(false); }
   };
 
-  // 🔥 THE BILLION-DOLLAR POLYFILL PREVIEW ENGINE
+  // 🔥 THE BILLION-DOLLAR POLYFILL PREVIEW ENGINE (100% BULLETPROOF)
   const renderLivePreview = () => {
       const fileKeys = Object.keys(generatedFiles);
       if (fileKeys.length === 0) {
@@ -283,13 +289,13 @@ function MantuEngineApp() {
           if(!code) return;
           
           // 🔥 MAGIC: Strip all imports aggressively so browser doesn't throw SyntaxError
-          code = code.replace(/import\s+.*?['"].*?['"];?/gs, ''); 
           code = code.replace(/import\s+[\s\S]*?from\s+['"].*?['"];?/g, '');
+          code = code.replace(/import\s+['"].*?['"];?/g, '');
           
           // Clean exports to make functions globally accessible
-          code = code.replace(/export\s+default\s+function\s+([a-zA-Z0-9_]+)/g, 'function $1');
-          code = code.replace(/export\s+default\s+([a-zA-Z0-9_]+);?/g, '');
-          code = code.replace(/export\s+(const|let|var|function)/g, '$1');
+          code = code.replace(/export\s+default\s+function/g, 'function');
+          code = code.replace(/export\s+default\s+[a-zA-Z0-9_]+;?/g, ''); // Removes `export default App;`
+          code = code.replace(/export\s+/g, '');
           
           allJsxCode += `\n/* --- ${key} --- */\n` + code;
       });
@@ -311,22 +317,23 @@ function MantuEngineApp() {
         <script src="https://unpkg.com/react-router@6.22.3/dist/umd/react-router.development.js"></script>
         <script src="https://unpkg.com/react-router-dom@6.22.3/dist/umd/react-router-dom.development.js"></script>
         
-        <script src="https://unpkg.com/babel-standalone@6/babel.min.js"></script>
+        <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
         <script src="https://cdn.tailwindcss.com"></script>
         
         <script>
-            // 🛠️ THE CTO POLYFILL: Map all React/Icon features globally so stripped imports don't crash the app
-            window.useState = React.useState;
-            window.useEffect = React.useEffect;
-            window.useRef = React.useRef;
-            window.useMemo = React.useMemo;
-            window.useCallback = React.useCallback;
-            window.useContext = React.useContext;
-            window.useReducer = React.useReducer;
+            // 🛠️ THE CTO POLYFILL: Globalize everything so stripped code finds it
+            window.React = React;
+            window.react = window.React; // Handle lowercase typose
             
+            // Map all React hooks globally
+            Object.keys(React).forEach(key => window[key] = React[key]);
+            
+            // Map Lucide Icons globally
             if(window.lucideReact) {
                 Object.keys(window.lucideReact).forEach(key => window[key] = window.lucideReact[key]);
             }
+            
+            // Map React Router globally
             if(window.ReactRouterDOM) {
                 Object.keys(window.ReactRouterDOM).forEach(key => window[key] = window.ReactRouterDOM[key]);
             }
@@ -334,9 +341,9 @@ function MantuEngineApp() {
         <style>${combinedCss}</style>
       `;
 
+      // 🔥 Added data-presets="react,env" which fixes the Babel Compilation Error!
       let executeReact = `
-        <script type="text/babel" data-type="module">
-          // Failsafe: Catch runtime errors and display them instead of a white screen
+        <script type="text/babel" data-presets="react,env">
           window.onerror = function(msg) {
               const root = document.getElementById('root');
               if(root) root.innerHTML = '<div style="color:#ff6b6b; padding:20px; background:#222; border-radius:8px; margin:20px; font-family:monospace; border: 1px solid #ff6b6b;"><b>Runtime Error:</b><br/>' + msg + '</div>';
@@ -349,7 +356,6 @@ function MantuEngineApp() {
               const rootElement = document.getElementById('root');
               if(rootElement && typeof App !== 'undefined') {
                   const root = ReactDOM.createRoot(rootElement);
-                  // Wrap in BrowserRouter if Router is used
                   if(typeof BrowserRouter !== 'undefined') {
                       root.render(<BrowserRouter><App /></BrowserRouter>);
                   } else {
@@ -358,12 +364,20 @@ function MantuEngineApp() {
               }
           } catch(err) {
               const root = document.getElementById('root');
-              if(root) root.innerHTML = '<div style="color:#ff6b6b; padding:20px; background:#222; border-radius:8px; margin:20px; font-family:monospace; border: 1px solid #ff6b6b;"><b>Babel Compilation Error:</b><br/>' + err.message + '</div>';
+              if(root) root.innerHTML = '<div style="color:#ff6b6b; padding:20px; background:#222; border-radius:8px; margin:20px; font-family:monospace; border: 1px solid #ff6b6b;"><b>Compilation Error:</b><br/>' + err.message + '</div>';
           }
         </script>
       `;
 
       return `<!DOCTYPE html><html><head>${reactImports}</head><body class="bg-white"><div id="root"></div>${executeReact}</body></html>`;
+  };
+
+  const handlePemUpload = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => setAwsAuthKey(ev.target.result);
+    reader.readAsText(file);
   };
 
   const handlePublish = async () => {
@@ -403,9 +417,13 @@ function MantuEngineApp() {
   const lines = Array.from({length: Math.max(activeCode.split('\n').length, 1)}, (_, i) => i + 1);
   const handleCodeScroll = (e) => { if (lineNumbersRef.current) lineNumbersRef.current.scrollTop = e.target.scrollTop; };
 
+  // ==========================================
+  // 🖥️ UI RENDER LAYER
+  // ==========================================
   return (
     <div className="h-[100dvh] w-full flex flex-col font-sans overflow-hidden bg-[#050505] text-white relative">
       <style dangerouslySetInnerHTML={{__html: globalStyles}} />
+      
       {isAuthModalOpen && <AuthModal isOpen={isAuthModalOpen} onClose={() => setIsAuthModalOpen(false)} onSuccess={handleAuthSuccess} backendUrl={BACKEND_URL} />}
 
       <div className="w-full bg-blue-900/20 border-b border-blue-900/50 text-blue-400 text-[10px] font-mono py-1.5 flex overflow-hidden whitespace-nowrap shrink-0 z-30">
@@ -436,7 +454,12 @@ function MantuEngineApp() {
             
             <div className="w-full max-w-3xl bg-[#0d0d12]/80 backdrop-blur-xl border border-[#2b2b36] rounded-2xl flex flex-col shadow-2xl transition-all duration-300 focus-within:border-blue-500 focus-within:shadow-[0_0_30px_rgba(59,130,246,0.2)] hover:border-[#3b3b46] relative p-1">
                 {uploadedImage && (
-                    <div className="absolute top-4 right-4 z-10"><div className="relative border border-[#2b2b36] rounded-lg overflow-hidden w-20 h-20 shadow-lg"><img src={uploadedImage} alt="Reference UI" className="w-full h-full object-cover opacity-80" /><button onClick={() => setUploadedImage(null)} className="absolute top-1 right-1 bg-black/70 text-white rounded-full p-1 hover:bg-red-500 transition"><CloseIcon/></button></div></div>
+                    <div className="absolute top-4 right-4 z-10">
+                        <div className="relative border border-[#2b2b36] rounded-lg overflow-hidden w-20 h-20 shadow-lg">
+                            <img src={uploadedImage} alt="Reference UI" className="w-full h-full object-cover opacity-80" />
+                            <button onClick={() => setUploadedImage(null)} className="absolute top-1 right-1 bg-black/70 text-white rounded-full p-1 hover:bg-red-500 transition"><CloseIcon/></button>
+                        </div>
+                    </div>
                 )}
                 <textarea value={prompt} onChange={(e) => setPrompt(e.target.value)} placeholder="e.g. Build a SaaS Dashboard with React and Tailwind..." className="w-full bg-transparent border-none outline-none p-5 resize-none min-h-[140px] text-lg text-white placeholder-gray-600" onKeyDown={(e) => { if(e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); triggerBuild(prompt, false); } }} />
                 <div className="flex items-center justify-between p-3 border-t border-[#1f1f23]">
@@ -448,6 +471,7 @@ function MantuEngineApp() {
                     <button onClick={() => triggerBuild(prompt, false)} disabled={isGenerating} className="bg-white text-black hover:bg-gray-200 px-8 py-2.5 rounded-xl font-extrabold flex items-center gap-2 transition shadow-[0_0_20px_rgba(255,255,255,0.2)]">{isGenerating ? <span className="animate-spin">🌀</span> : <SparkleIcon/>} {isGenerating ? 'Building...' : 'Generate UI'}</button>
                 </div>
             </div>
+
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-12 w-full max-w-3xl z-10">{[ {icon: '📈', title: 'Crypto Dashboard', desc: 'React component'}, {icon: '🛒', title: 'E-Commerce UI', desc: 'React + Tailwind'}, {icon: '🎬', title: 'Video SaaS Hero', desc: 'Landing page UI'} ].map((card, i) => (<div key={i} onClick={() => setPrompt(`Build a ${card.title} with ${card.desc.toLowerCase()}`)} className="bg-white/5 backdrop-blur-md border border-white/10 p-5 rounded-xl cursor-pointer hover:-translate-y-1 hover:bg-white/10 hover:border-blue-500/50 transition-all duration-300"><div className="text-2xl mb-3">{card.icon}</div><div className="font-bold text-sm text-white">{card.title}</div><div className="text-[11px] text-gray-400 mt-1">{card.desc}</div></div>))}</div>
         </div>
       ) : (
@@ -468,7 +492,17 @@ function MantuEngineApp() {
             <div className="flex-1 flex overflow-hidden">
                 <div className="w-80 bg-[#0a0a0c] border-r border-[#1f1f23] flex flex-col shrink-0 relative hidden md:flex">
                     <div className="p-3 border-b border-[#1f1f23] shrink-0"><h2 className="text-[10px] font-bold text-yellow-500 uppercase tracking-widest flex items-center gap-2"><SparkleIcon/> ACTION TIMELINE</h2></div>
-                    <div className="flex-1 overflow-y-auto p-4 space-y-6 pb-20 custom-scrollbar">{actionLogs.map((log, index) => (<div key={index} className="flex gap-3">{log.type === 'user' ? (<div className="bg-[#1a1a24] border border-[#2b2b36] rounded-lg p-3 text-sm text-gray-300 w-full shadow-sm"><div className="text-[10px] text-blue-400 font-bold mb-1.5 flex items-center gap-1.5 uppercase tracking-wide"><MicIcon/> User Prompt</div><div className="leading-relaxed">{log.text}</div></div>) : (<><div className={`mt-1.5 w-2 h-2 rounded-full shrink-0 ${log.status==='Error'?'bg-red-500': log.status==='Done' || log.status==='Success'?'bg-green-500':'bg-blue-500 animate-pulse'}`}></div><div className="flex-1"><div className="font-bold text-gray-500 text-[10px] uppercase tracking-wider">{log.agent}</div><div className={`font-bold text-xs ${log.status==='Error'?'text-red-500': log.status==='Done' || log.status==='Success'?'text-green-500':'text-blue-500'}`}>{log.status}</div><div className="text-gray-400 text-xs mt-1 leading-relaxed">{log.details}</div></div></>)}</div>))}</div>
+                    <div className="flex-1 overflow-y-auto p-4 space-y-6 pb-20 custom-scrollbar">
+                        {actionLogs.map((log, index) => (
+                            <div key={index} className="flex gap-3">
+                                {log.type === 'user' ? (
+                                    <div className="bg-[#1a1a24] border border-[#2b2b36] rounded-lg p-3 text-sm text-gray-300 w-full shadow-sm"><div className="text-[10px] text-blue-400 font-bold mb-1.5 flex items-center gap-1.5 uppercase tracking-wide"><MicIcon/> User Prompt</div><div className="leading-relaxed">{log.text}</div></div>
+                                ) : (
+                                    <><div className={`mt-1.5 w-2 h-2 rounded-full shrink-0 ${log.status==='Error'?'bg-red-500': log.status==='Done' || log.status==='Success'?'bg-green-500':'bg-blue-500 animate-pulse'}`}></div><div className="flex-1"><div className="font-bold text-gray-500 text-[10px] uppercase tracking-wider">{log.agent}</div><div className={`font-bold text-xs ${log.status==='Error'?'text-red-500': log.status==='Done' || log.status==='Success'?'text-green-500':'text-blue-500'}`}>{log.status}</div><div className="text-gray-400 text-xs mt-1 leading-relaxed">{log.details}</div></div></>
+                                )}
+                            </div>
+                        ))}
+                    </div>
                     <div className="absolute bottom-0 left-0 w-full bg-[#0a0a0c] border-t border-[#1f1f23] p-3"><div className="bg-[#1a1a24] border border-[#2b2b36] rounded-xl flex items-center px-3 py-2.5 focus-within:border-blue-500/50 transition-all shadow-inner"><button onClick={()=>toggleListening('followUp')} className={`text-gray-500 hover:text-white transition mr-2 ${isListening?'text-red-500 animate-pulse':''}`}><MicIcon/></button><input type="text" value={followUpPrompt} onChange={(e)=>setFollowUpPrompt(e.target.value)} placeholder="Ask for UI changes..." className="flex-1 bg-transparent border-none outline-none text-xs text-white placeholder-gray-600" onKeyDown={(e) => { if(e.key === 'Enter') triggerBuild(followUpPrompt, true); }} /><button onClick={() => triggerBuild(followUpPrompt, true)} disabled={!followUpPrompt.trim() || isGenerating} className="bg-blue-600 hover:bg-blue-500 disabled:bg-gray-700 text-white p-1.5 rounded-lg ml-2 transition shadow"><SendIcon/></button></div></div>
                 </div>
 
@@ -548,7 +582,7 @@ function MantuEngineApp() {
               </div>
           </div>
       )}
-
+      
       {isHistoryModalOpen && (
           <div className="fixed inset-0 bg-black/80 flex items-center justify-end z-50 transition-opacity">
               <div className="bg-[#111116] border-l border-[#2b2b2b] w-full max-w-md h-full flex flex-col shadow-2xl animate-slide-in-right">
