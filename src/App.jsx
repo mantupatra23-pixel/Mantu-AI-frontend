@@ -69,7 +69,6 @@ const globalStyles = `
 function MantuEngineApp() {
   const BACKEND_URL = "https://visora-code.onrender.com"; 
   
-  // --- STATES ---
   const [currentUser, setCurrentUser] = useState(null);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
@@ -88,11 +87,10 @@ function MantuEngineApp() {
   
   const [terminalOutput, setTerminalOutput] = useState("> System Ready. Welcome to Mantu React Builder.");
   const [isConsoleOpen, setIsConsoleOpen] = useState(false);
-  
   const [isListening, setIsListening] = useState(false); 
   
   const [isPublishModalOpen, setIsPublishModalOpen] = useState(false);
-  const [publishMethod, setPublishMethod] = useState('github'); 
+  const [publishMethod, setPublishMethod] = useState('cloud'); 
   const [awsInstanceType, setAwsInstanceType] = useState('cpu'); 
   const [awsTargetIp, setAwsTargetIp] = useState(""); 
   const [awsAuthKey, setAwsAuthKey] = useState(""); 
@@ -104,14 +102,12 @@ function MantuEngineApp() {
   const [projectEnv, setProjectEnv] = useState([{ key: '', value: '' }]);
   const [deployedUrl, setDeployedUrl] = useState(null); 
 
-  // --- REFS ---
   const consoleEndRef = useRef(null);
   const fileInputRef = useRef(null); 
   const codeTextareaRef = useRef(null);
   const lineNumbersRef = useRef(null);
   const recognitionRef = useRef(null);
 
-  // --- EFFECTS ---
   useEffect(() => {
       if (isConsoleOpen && consoleEndRef.current) consoleEndRef.current.scrollIntoView({ behavior: "smooth" });
   }, [terminalOutput, isConsoleOpen]);
@@ -131,7 +127,6 @@ function MantuEngineApp() {
       }
   }, []);
 
-  // --- FUNCTIONS ---
   const fetchCloudProjects = async (userId, token) => {
       try {
           const res = await fetch(`${BACKEND_URL}/api/get-projects?userId=${userId}`, { headers: { 'Authorization': `Bearer ${token}` }});
@@ -193,7 +188,6 @@ function MantuEngineApp() {
       if (isListening) { recognitionRef.current?.stop(); setIsListening(false); return; }
       const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
       if (!SpeechRecognition) return alert("Voice Typing is not supported.");
-      
       const recognition = new SpeechRecognition();
       recognition.continuous = true; recognition.interimResults = true;
       let initialPrompt = targetInput === 'followUp' ? followUpPrompt : prompt;
@@ -269,7 +263,7 @@ function MantuEngineApp() {
       } finally { setIsGenerating(false); }
   };
 
-  // 🔥 THE BILLION-DOLLAR POLYFILL PREVIEW ENGINE (FIXED CONFIG CRASH)
+  // 🔥 THE BILLION-DOLLAR POLYFILL PREVIEW ENGINE (DOUBLE-ROUTER FIX)
   const renderLivePreview = () => {
       const fileKeys = Object.keys(generatedFiles);
       if (fileKeys.length === 0) {
@@ -279,15 +273,13 @@ function MantuEngineApp() {
       let combinedCss = "";
       fileKeys.filter(k => k.endsWith('.css')).forEach(k => combinedCss += generatedFiles[k] + "\n");
 
-      // 🔥 CRITICAL FIX: Only compile actual React source files, NEVER run configs (vite.config.js) in the browser!
       const jsxFiles = fileKeys.filter(k => {
           if (!k.endsWith('.jsx') && !k.endsWith('.js')) return false;
-          if (k.includes('config.js') || k.includes('.config.')) return false; // Blocks vite.config.js, tailwind.config.js
-          if (k.includes('main.jsx') || k.includes('index.js') || k.includes('index.jsx')) return false; // Blocks entry points
+          if (k.includes('config.js') || k.includes('.config.')) return false; 
+          if (k.includes('main.jsx') || k.includes('index.js') || k.includes('index.jsx')) return false; 
           return true;
       });
 
-      // Ensure App.jsx renders last
       jsxFiles.sort((a, b) => a.includes('App.jsx') ? 1 : b.includes('App.jsx') ? -1 : 0); 
 
       let allJsxCode = "";
@@ -295,11 +287,9 @@ function MantuEngineApp() {
           let code = generatedFiles[key];
           if(!code) return;
           
-          // Strip imports so browser doesn't throw SyntaxError
           code = code.replace(/import\s+.*?['"].*?['"];?/gs, ''); 
           code = code.replace(/import\s+[\s\S]*?from\s+['"].*?['"];?/g, '');
           
-          // Clean exports to make components globally accessible
           code = code.replace(/export\s+default\s+function\s+([a-zA-Z0-9_]+)/g, 'function $1');
           code = code.replace(/export\s+default\s+[a-zA-Z0-9_]+;?/g, ''); 
           code = code.replace(/export\s+(const|let|var|function)/g, '$1');
@@ -328,7 +318,7 @@ function MantuEngineApp() {
         <script src="https://cdn.tailwindcss.com"></script>
         
         <script>
-            // 🛠️ GLOBAL POLYFILL: Map React hooks globally so stripped code finds them
+            // 🛠️ GLOBAL POLYFILL
             window.React = React;
             Object.keys(React).forEach(key => window[key] = React[key]);
             
@@ -342,6 +332,7 @@ function MantuEngineApp() {
         <style>${combinedCss}</style>
       `;
 
+      // 🔥 CRITICAL FIX: Removed <BrowserRouter> wrapper to prevent Double Router Crash!
       let executeReact = `
         <script type="text/babel" data-presets="react,env">
           window.onerror = function(msg) {
@@ -356,11 +347,9 @@ function MantuEngineApp() {
               const rootElement = document.getElementById('root');
               if(rootElement && typeof App !== 'undefined') {
                   const root = ReactDOM.createRoot(rootElement);
-                  if(typeof BrowserRouter !== 'undefined') {
-                      root.render(<BrowserRouter><App /></BrowserRouter>);
-                  } else {
-                      root.render(<App />);
-                  }
+                  // We removed the BrowserRouter wrapper here. 
+                  // Now AI's generated App.jsx routing will work flawlessly!
+                  root.render(<App />);
               }
           } catch(err) {
               const root = document.getElementById('root');
@@ -417,9 +406,6 @@ function MantuEngineApp() {
   const lines = Array.from({length: Math.max(activeCode.split('\n').length, 1)}, (_, i) => i + 1);
   const handleCodeScroll = (e) => { if (lineNumbersRef.current) lineNumbersRef.current.scrollTop = e.target.scrollTop; };
 
-  // ==========================================
-  // 🖥️ UI RENDER LAYER
-  // ==========================================
   return (
     <div className="h-[100dvh] w-full flex flex-col font-sans overflow-hidden bg-[#050505] text-white relative">
       <style dangerouslySetInnerHTML={{__html: globalStyles}} />
@@ -471,7 +457,6 @@ function MantuEngineApp() {
                     <button onClick={() => triggerBuild(prompt, false)} disabled={isGenerating} className="bg-white text-black hover:bg-gray-200 px-8 py-2.5 rounded-xl font-extrabold flex items-center gap-2 transition shadow-[0_0_20px_rgba(255,255,255,0.2)]">{isGenerating ? <span className="animate-spin">🌀</span> : <SparkleIcon/>} {isGenerating ? 'Building...' : 'Generate UI'}</button>
                 </div>
             </div>
-
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-12 w-full max-w-3xl z-10">{[ {icon: '📈', title: 'Crypto Dashboard', desc: 'React component'}, {icon: '🛒', title: 'E-Commerce UI', desc: 'React + Tailwind'}, {icon: '🎬', title: 'Video SaaS Hero', desc: 'Landing page UI'} ].map((card, i) => (<div key={i} onClick={() => setPrompt(`Build a ${card.title} with ${card.desc.toLowerCase()}`)} className="bg-white/5 backdrop-blur-md border border-white/10 p-5 rounded-xl cursor-pointer hover:-translate-y-1 hover:bg-white/10 hover:border-blue-500/50 transition-all duration-300"><div className="text-2xl mb-3">{card.icon}</div><div className="font-bold text-sm text-white">{card.title}</div><div className="text-[11px] text-gray-400 mt-1">{card.desc}</div></div>))}</div>
         </div>
       ) : (
@@ -565,9 +550,7 @@ function MantuEngineApp() {
           <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
               <div className="bg-[#111116] border border-[#2b2b2b] w-full max-w-lg rounded-2xl overflow-hidden shadow-2xl">
                   <div className="p-5 border-b border-[#2b2b2b] flex justify-between items-center bg-gradient-to-r from-yellow-500/10 to-transparent">
-                      <div>
-                          <h3 className="text-lg font-bold text-white flex items-center gap-2"><LockIcon className="text-yellow-500"/> Secrets Manager</h3>
-                      </div>
+                      <div><h3 className="text-lg font-bold text-white flex items-center gap-2"><LockIcon className="text-yellow-500"/> Secrets Manager</h3></div>
                       <button onClick={() => setIsEnvModalOpen(false)} className="text-gray-400 hover:text-white bg-[#1a1a24] p-2 rounded-full transition"><CloseIcon/></button>
                   </div>
                   <div className="p-6 flex flex-col gap-4 max-h-[60vh] overflow-y-auto custom-scrollbar">
@@ -580,9 +563,7 @@ function MantuEngineApp() {
                       ))}
                       <button onClick={() => setProjectEnv([...projectEnv, { key: '', value: '' }])} className="text-xs text-yellow-500 font-bold w-max mt-2 hover:underline">+ Add Variable</button>
                   </div>
-                  <div className="p-4 border-t border-[#2b2b2b] bg-[#0a0a0c]">
-                      <button onClick={() => setIsEnvModalOpen(false)} className="w-full bg-white text-black hover:bg-gray-200 py-3 rounded-xl font-bold text-sm shadow-lg transition">Save Keys</button>
-                  </div>
+                  <div className="p-4 border-t border-[#2b2b2b] bg-[#0a0a0c]"><button onClick={() => setIsEnvModalOpen(false)} className="w-full bg-white text-black hover:bg-gray-200 py-3 rounded-xl font-bold text-sm shadow-lg transition">Save Keys</button></div>
               </div>
           </div>
       )}
