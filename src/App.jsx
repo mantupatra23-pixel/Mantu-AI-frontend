@@ -87,6 +87,7 @@ function MantuEngineApp() {
   
   const [terminalOutput, setTerminalOutput] = useState("> System Ready. Welcome to Mantu React Builder.");
   const [isConsoleOpen, setIsConsoleOpen] = useState(false);
+  
   const [isListening, setIsListening] = useState(false); 
   
   const [isPublishModalOpen, setIsPublishModalOpen] = useState(false);
@@ -263,7 +264,7 @@ function MantuEngineApp() {
       } finally { setIsGenerating(false); }
   };
 
-  // 🔥 THE BILLION-DOLLAR POLYFILL PREVIEW ENGINE (DOUBLE-ROUTER FIX)
+  // 🔥 THE SILENT BUG FIX: ADDED CSS RESET TO PREVIEW HTML
   const renderLivePreview = () => {
       const fileKeys = Object.keys(generatedFiles);
       if (fileKeys.length === 0) {
@@ -307,32 +308,27 @@ function MantuEngineApp() {
         
         <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
         <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
-        
         <script src="https://unpkg.com/lucide@latest"></script>
         <script src="https://unpkg.com/lucide-react@latest/dist/umd/lucide-react.js"></script>
         <script src="https://unpkg.com/@remix-run/router@1.15.3/dist/router.umd.min.js"></script>
         <script src="https://unpkg.com/react-router@6.22.3/dist/umd/react-router.development.js"></script>
         <script src="https://unpkg.com/react-router-dom@6.22.3/dist/umd/react-router-dom.development.js"></script>
-        
         <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
         <script src="https://cdn.tailwindcss.com"></script>
         
         <script>
-            // 🛠️ GLOBAL POLYFILL
             window.React = React;
             Object.keys(React).forEach(key => window[key] = React[key]);
-            
-            if(window.lucideReact) {
-                Object.keys(window.lucideReact).forEach(key => window[key] = window.lucideReact[key]);
-            }
-            if(window.ReactRouterDOM) {
-                Object.keys(window.ReactRouterDOM).forEach(key => window[key] = window.ReactRouterDOM[key]);
-            }
+            if(window.lucideReact) { Object.keys(window.lucideReact).forEach(key => window[key] = window.lucideReact[key]); }
+            if(window.ReactRouterDOM) { Object.keys(window.ReactRouterDOM).forEach(key => window[key] = window.ReactRouterDOM[key]); }
         </script>
-        <style>${combinedCss}</style>
+        <style>
+          ${combinedCss}
+          /* CTO CSS Reset - Forces the content to be visible */
+          html, body, #root { width: 100%; min-height: 100vh; margin: 0; padding: 0; background-color: #ffffff; color: #000000; overflow-x: hidden; }
+        </style>
       `;
 
-      // 🔥 CRITICAL FIX: Removed <BrowserRouter> wrapper to prevent Double Router Crash!
       let executeReact = `
         <script type="text/babel" data-presets="react,env">
           window.onerror = function(msg) {
@@ -347,8 +343,6 @@ function MantuEngineApp() {
               const rootElement = document.getElementById('root');
               if(rootElement && typeof App !== 'undefined') {
                   const root = ReactDOM.createRoot(rootElement);
-                  // We removed the BrowserRouter wrapper here. 
-                  // Now AI's generated App.jsx routing will work flawlessly!
                   root.render(<App />);
               }
           } catch(err) {
@@ -358,7 +352,7 @@ function MantuEngineApp() {
         </script>
       `;
 
-      return `<!DOCTYPE html><html><head>${reactImports}</head><body class="bg-white"><div id="root"></div>${executeReact}</body></html>`;
+      return `<!DOCTYPE html><html lang="en"><head>${reactImports}</head><body><div id="root"></div>${executeReact}</body></html>`;
   };
 
   const handlePemUpload = (e) => {
@@ -457,6 +451,7 @@ function MantuEngineApp() {
                     <button onClick={() => triggerBuild(prompt, false)} disabled={isGenerating} className="bg-white text-black hover:bg-gray-200 px-8 py-2.5 rounded-xl font-extrabold flex items-center gap-2 transition shadow-[0_0_20px_rgba(255,255,255,0.2)]">{isGenerating ? <span className="animate-spin">🌀</span> : <SparkleIcon/>} {isGenerating ? 'Building...' : 'Generate UI'}</button>
                 </div>
             </div>
+
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-12 w-full max-w-3xl z-10">{[ {icon: '📈', title: 'Crypto Dashboard', desc: 'React component'}, {icon: '🛒', title: 'E-Commerce UI', desc: 'React + Tailwind'}, {icon: '🎬', title: 'Video SaaS Hero', desc: 'Landing page UI'} ].map((card, i) => (<div key={i} onClick={() => setPrompt(`Build a ${card.title} with ${card.desc.toLowerCase()}`)} className="bg-white/5 backdrop-blur-md border border-white/10 p-5 rounded-xl cursor-pointer hover:-translate-y-1 hover:bg-white/10 hover:border-blue-500/50 transition-all duration-300"><div className="text-2xl mb-3">{card.icon}</div><div className="font-bold text-sm text-white">{card.title}</div><div className="text-[11px] text-gray-400 mt-1">{card.desc}</div></div>))}</div>
         </div>
       ) : (
