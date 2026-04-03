@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, Component } from 'react';
 import AuthModal from './components/AuthModal';
 
 // ==========================================
-// 🛡️ ANTI-CRASH ERROR BOUNDARY
+// 🛡️ MAIN APP ANTI-CRASH ERROR BOUNDARY
 // ==========================================
 class ErrorBoundary extends Component {
   constructor(props) { super(props); this.state = { hasError: false, errorInfo: null }; }
@@ -28,7 +28,7 @@ class ErrorBoundary extends Component {
 }
 
 // ==========================================
-// 🎨 ALL ICONS (100% COMPLETE)
+// 🎨 ALL ICONS
 // ==========================================
 const MantuLogo = () => <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="url(#blue-grad)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><defs><linearGradient id="blue-grad" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stopColor="#3b82f6" /><stop offset="100%" stopColor="#8b5cf6" /></linearGradient></defs><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>;
 const SparkleIcon = () => <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="m12 3-1.9 5.8a2 2 0 0 1-1.3 1.3L3 12l5.8 1.9a2 2 0 0 1 1.3 1.3L12 21l1.9-5.8a2 2 0 0 1-1.3-1.3L21 12l-5.8-1.9a2 2 0 0 1-1.3-1.3L12 3Z"/></svg>;
@@ -69,7 +69,6 @@ const globalStyles = `
 function MantuEngineApp() {
   const BACKEND_URL = "https://visora-code.onrender.com"; 
   
-  // --- STATES ---
   const [currentUser, setCurrentUser] = useState(null);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
@@ -102,14 +101,12 @@ function MantuEngineApp() {
   const [projectEnv, setProjectEnv] = useState([{ key: '', value: '' }]);
   const [deployedUrl, setDeployedUrl] = useState(null); 
 
-  // --- REFS ---
   const consoleEndRef = useRef(null);
   const fileInputRef = useRef(null); 
   const codeTextareaRef = useRef(null);
   const lineNumbersRef = useRef(null);
   const recognitionRef = useRef(null);
 
-  // --- EFFECTS ---
   useEffect(() => {
       if (isConsoleOpen && consoleEndRef.current) consoleEndRef.current.scrollIntoView({ behavior: "smooth" });
   }, [terminalOutput, isConsoleOpen]);
@@ -129,7 +126,6 @@ function MantuEngineApp() {
       }
   }, []);
 
-  // --- CORE FUNCTIONS ---
   const fetchCloudProjects = async (userId, token) => {
       try {
           const res = await fetch(`${BACKEND_URL}/api/get-projects?userId=${userId}`, { headers: { 'Authorization': `Bearer ${token}` }});
@@ -190,7 +186,7 @@ function MantuEngineApp() {
   const toggleListening = (targetInput) => {
       if (isListening) { recognitionRef.current?.stop(); setIsListening(false); return; }
       const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-      if (!SpeechRecognition) return alert("Voice Typing is not supported in this browser.");
+      if (!SpeechRecognition) return alert("Voice Typing is not supported.");
       const recognition = new SpeechRecognition();
       recognition.continuous = true; recognition.interimResults = true;
       let initialPrompt = targetInput === 'followUp' ? followUpPrompt : prompt;
@@ -203,7 +199,6 @@ function MantuEngineApp() {
       recognitionRef.current = recognition; recognition.start(); setIsListening(true);
   };
 
-  // --- STREAMING BUILD ENGINE ---
   const triggerBuild = async (text, isFollowUp = false) => {
       if (!text.trim() && !uploadedImage) return;
       if (!currentUser) return setIsAuthModalOpen(true); 
@@ -268,7 +263,7 @@ function MantuEngineApp() {
       } finally { setIsGenerating(false); }
   };
 
-  // 🔥 100% BULLETPROOF LIVE PREVIEW (FIXED CODE EATER)
+  // 🔥 100% BULLETPROOF LIVE PREVIEW (DUAL-SHIELD FIX)
   const renderLivePreview = () => {
       const fileKeys = Object.keys(generatedFiles);
       if (fileKeys.length === 0) {
@@ -292,18 +287,34 @@ function MantuEngineApp() {
           let code = generatedFiles[key];
           if(!code) return;
           
-          // 🔥 SAFE STRIPPING (Will not eat actual code)
           code = code.replace(/import\s+[\s\S]*?from\s+['"].*?['"];?/g, '');
           code = code.replace(/import\s+['"].*?['"];?/g, '');
           
           code = code.replace(/export\s+default\s+function\s+([a-zA-Z0-9_]+)/g, 'function $1');
           code = code.replace(/export\s+default\s+[a-zA-Z0-9_]+;?/g, ''); 
-          code = code.replace(/export\s+(const|let|var|function)/g, '$1');
+          code = code.replace(/export\s+(const|let|var|function|class)/g, '$1');
           
           allJsxCode += `\n/* --- ${key} --- */\n` + code;
       });
 
+      const envObj = {}; 
+      if(Array.isArray(projectEnv)) {
+          projectEnv.forEach(e => { if (e && e.key && e.key.trim()) envObj[e.key.trim()] = e.value ? e.value.trim() : ''; });
+      }
+
       const reactImports = `
+        <script>
+            window.onerror = function(msg, url, line, col, error) {
+                const root = document.getElementById('root');
+                if(root) {
+                    root.innerHTML = '<div style="color:#ff6b6b; padding:20px; background:#222; border-radius:8px; margin:20px; font-family:monospace; border: 1px solid #ff6b6b;"><b>Babel/Syntax Error:</b><br/>' + msg + '</div>';
+                }
+                return true;
+            };
+            window.mantuEnv = ${JSON.stringify(envObj)}; 
+            window.process = { env: window.mantuEnv };
+        </script>
+        
         <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
         <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
         <script src="https://unpkg.com/lucide@latest"></script>
@@ -313,31 +324,47 @@ function MantuEngineApp() {
         <script src="https://unpkg.com/react-router-dom@6.22.3/dist/umd/react-router-dom.development.js"></script>
         <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
         <script src="https://cdn.tailwindcss.com"></script>
+        
         <script>
             window.React = React;
             Object.keys(React).forEach(key => window[key] = React[key]);
             if(window.lucideReact) { Object.keys(window.lucideReact).forEach(key => window[key] = window.lucideReact[key]); }
+            if(window.ReactRouterDOM) { Object.keys(window.ReactRouterDOM).forEach(key => window[key] = window.ReactRouterDOM[key]); }
         </script>
-        <style>${combinedCss} html, body, #root { width: 100%; min-height: 100vh; margin: 0; padding: 0; background-color: #f9fafb; }</style>
+        <style>
+            ${combinedCss} 
+            html, body, #root { width: 100%; min-height: 100vh; margin: 0; padding: 0; background-color: #f9fafb; }
+        </style>
       `;
 
       let executeReact = `
         <script type="text/babel" data-presets="react,env">
-          window.onerror = function(msg) {
-              const root = document.getElementById('root');
-              if(root) root.innerHTML = '<div style="color:#ff6b6b; padding:20px; background:#222; border-radius:8px; margin:20px;"><b>Runtime Error:</b><br/>' + msg + '</div>';
-              return false;
-          };
-          try {
-              ${allJsxCode}
-              const rootElement = document.getElementById('root');
-              if(rootElement && typeof App !== 'undefined') {
-                  const root = ReactDOM.createRoot(rootElement);
-                  root.render(<App />);
+          // 🛡️ SHIELD 2: Catches Component Render Errors
+          class IframeErrorBoundary extends React.Component {
+              constructor(props) { super(props); this.state = { hasError: false, error: null }; }
+              static getDerivedStateFromError(error) { return { hasError: true, error: error }; }
+              render() {
+                  if (this.state.hasError) {
+                      return (
+                          <div style={{color:'#ff6b6b', padding:'20px', background:#222', borderRadius:'8px', margin:'20px', fontFamily:'monospace', border:'1px solid #ff6b6b'}}>
+                              <b>React Component Crash:</b><br/>{this.state.error.message}
+                          </div>
+                      );
+                  }
+                  return this.props.children;
               }
-          } catch(err) {
-              const root = document.getElementById('root');
-              if(root) root.innerHTML = '<div style="color:#ff6b6b; padding:20px; background:#222; border-radius:8px; margin:20px;"><b>Compilation Error:</b><br/>' + err.message + '</div>';
+          }
+
+          ${allJsxCode}
+
+          const rootElement = document.getElementById('root');
+          if(rootElement) {
+              if(typeof App !== 'undefined') {
+                  const root = ReactDOM.createRoot(rootElement);
+                  root.render(<IframeErrorBoundary><App /></IframeErrorBoundary>);
+              } else {
+                  rootElement.innerHTML = '<div style="color:#ff6b6b; padding:20px; background:#222; border-radius:8px; margin:20px; font-family:monospace; border: 1px solid #ff6b6b;"><b>Fatal Error:</b><br/>App component is missing or failed to compile.</div>';
+              }
           }
         </script>
       `;
@@ -353,7 +380,6 @@ function MantuEngineApp() {
     reader.readAsText(file);
   };
 
-  // 🔥 100% COMPLETE PUBLISH LOGIC (RESTORED)
   const handlePublish = async () => {
     if(!currentUser) return setIsAuthModalOpen(true);
     
@@ -536,6 +562,28 @@ function MantuEngineApp() {
                           </div>
                       )}
                   </div>
+              </div>
+          </div>
+      )}
+
+      {isEnvModalOpen && (
+          <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
+              <div className="bg-[#111116] border border-[#2b2b2b] w-full max-w-lg rounded-2xl overflow-hidden shadow-2xl">
+                  <div className="p-5 border-b border-[#2b2b2b] flex justify-between items-center bg-gradient-to-r from-yellow-500/10 to-transparent">
+                      <div><h3 className="text-lg font-bold text-white flex items-center gap-2"><LockIcon className="text-yellow-500"/> Secrets Manager</h3></div>
+                      <button onClick={() => setIsEnvModalOpen(false)} className="text-gray-400 hover:text-white bg-[#1a1a24] p-2 rounded-full transition"><CloseIcon/></button>
+                  </div>
+                  <div className="p-6 flex flex-col gap-4 max-h-[60vh] overflow-y-auto custom-scrollbar">
+                      {projectEnv.map((env, i) => (
+                          <div key={i} className="flex gap-2 items-center group">
+                              <input type="text" value={env.key||""} onChange={(e) => { const n = [...projectEnv]; n[i].key = e.target.value.toUpperCase(); setProjectEnv(n); }} placeholder="e.g. API_URL" className="w-1/3 bg-[#0A0A0E] border border-[#2b2b2b] rounded-lg p-2.5 text-xs text-white font-mono outline-none focus:border-yellow-500 transition" />
+                              <input type="password" value={env.value||""} onChange={(e) => { const n = [...projectEnv]; n[i].value = e.target.value; setProjectEnv(n); }} placeholder="********" className="flex-1 bg-[#0A0A0E] border border-[#2b2b2b] rounded-lg p-2.5 text-xs text-white font-mono outline-none focus:border-yellow-500 transition" />
+                              <button onClick={() => setProjectEnv(projectEnv.filter((_, idx) => idx !== i))} className="text-gray-600 hover:text-red-500 p-2 opacity-0 group-hover:opacity-100 transition"><CloseIcon/></button>
+                          </div>
+                      ))}
+                      <button onClick={() => setProjectEnv([...projectEnv, { key: '', value: '' }])} className="text-xs text-yellow-500 font-bold w-max mt-2 hover:underline">+ Add Variable</button>
+                  </div>
+                  <div className="p-4 border-t border-[#2b2b2b] bg-[#0a0a0c]"><button onClick={() => setIsEnvModalOpen(false)} className="w-full bg-white text-black hover:bg-gray-200 py-3 rounded-xl font-bold text-sm shadow-lg transition">Save Keys</button></div>
               </div>
           </div>
       )}
