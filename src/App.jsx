@@ -263,7 +263,7 @@ function MantuEngineApp() {
       } finally { setIsGenerating(false); }
   };
 
-  // 🔥 100% BULLETPROOF PREVIEW (MANUAL BABEL COMPILATION FIX)
+  // 🔥 100% TRANSPARENT MANUAL COMPILATION ENGINE
   const renderLivePreview = () => {
       const fileKeys = Object.keys(generatedFiles);
       if (fileKeys.length === 0) {
@@ -287,10 +287,8 @@ function MantuEngineApp() {
           let code = generatedFiles[key];
           if(!code) return;
           
-          // 🔥 AGGRESSIVE AND SAFE IMPORT/EXPORT STRIPPING
           code = code.replace(/import\s+[\s\S]*?from\s+['"].*?['"];?/g, '');
           code = code.replace(/import\s+['"].*?['"];?/g, '');
-          
           code = code.replace(/export\s+default\s+function\s+([a-zA-Z0-9_]+)/g, 'function $1');
           code = code.replace(/export\s+default\s+[a-zA-Z0-9_]+;?/g, ''); 
           code = code.replace(/export\s+(const|let|var|function|class)/g, '$1');
@@ -304,92 +302,82 @@ function MantuEngineApp() {
           projectEnv.forEach(e => { if (e && e.key && e.key.trim()) envObj[e.key.trim()] = e.value ? e.value.trim() : ''; });
       }
 
-      // We escape </script> to prevent the string from breaking the HTML document
+      // Safe escape so we can inject code without breaking HTML scripts
       const safeJsxCode = allJsxCode.replace(/<\/script>/g, '<\\/script>');
 
       const reactImports = `
-        <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
-        <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
-        <script src="https://unpkg.com/lucide@latest"></script>
-        <script src="https://unpkg.com/lucide-react@latest/dist/umd/lucide-react.js"></script>
-        <script src="https://unpkg.com/@remix-run/router@1.15.3/dist/router.umd.min.js"></script>
-        <script src="https://unpkg.com/react-router@6.22.3/dist/umd/react-router.development.js"></script>
-        <script src="https://unpkg.com/react-router-dom@6.22.3/dist/umd/react-router-dom.development.js"></script>
-        <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+        <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin="anonymous"></script>
+        <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin="anonymous"></script>
+        <script src="https://unpkg.com/lucide@latest" crossorigin="anonymous"></script>
+        <script src="https://unpkg.com/lucide-react@latest/dist/umd/lucide-react.js" crossorigin="anonymous"></script>
+        <script src="https://unpkg.com/@remix-run/router@1.15.3/dist/router.umd.min.js" crossorigin="anonymous"></script>
+        <script src="https://unpkg.com/react-router@6.22.3/dist/umd/react-router.development.js" crossorigin="anonymous"></script>
+        <script src="https://unpkg.com/react-router-dom@6.22.3/dist/umd/react-router-dom.development.js" crossorigin="anonymous"></script>
+        <script src="https://unpkg.com/@babel/standalone/babel.min.js" crossorigin="anonymous"></script>
         <script src="https://cdn.tailwindcss.com"></script>
         
         <script>
             window.mantuEnv = ${JSON.stringify(envObj)}; 
             window.process = { env: window.mantuEnv };
             
-            // Globalize React hooks
             window.React = React;
             Object.keys(React).forEach(key => window[key] = React[key]);
             
             if(window.lucideReact) { Object.keys(window.lucideReact).forEach(key => window[key] = window.lucideReact[key]); }
             if(window.ReactRouterDOM) { Object.keys(window.ReactRouterDOM).forEach(key => window[key] = window.ReactRouterDOM[key]); }
         </script>
-        <style>
-          ${combinedCss} 
-          html, body, #root { width: 100%; min-height: 100vh; margin: 0; padding: 0; background-color: #f9fafb; }
-        </style>
+        <style>${combinedCss} html, body, #root { width: 100%; min-height: 100vh; margin: 0; padding: 0; background-color: #f9fafb; }</style>
       `;
 
       let executeReact = `
-        <script id="react-source" type="text/plain">
-          ${safeJsxCode}
-        </script>
-        
+        <script id="raw-jsx" type="text/plain">${safeJsxCode}</script>
         <script>
-          window.addEventListener('DOMContentLoaded', () => {
-              const rootElement = document.getElementById('root');
-              try {
-                  const sourceCode = document.getElementById('react-source').textContent;
-                  
-                  // Force Babel to compile synchronously. If it fails, it jumps to catch block.
-                  const compiledCode = Babel.transform(sourceCode, { presets: ['react', ['env', {modules: false}]] }).code;
+            window.addEventListener('DOMContentLoaded', () => {
+                const rootElement = document.getElementById('root');
+                try {
+                    // Manual Babel Compilation to catch exact Syntax Errors
+                    const rawCode = document.getElementById('raw-jsx').textContent;
+                    const compiled = Babel.transform(rawCode, { presets: ['react', ['env', {modules: false}]] }).code;
+                    
+                    const script = document.createElement('script');
+                    script.innerHTML = compiled + "\\n\\n" + \`
+                        if(typeof App !== 'undefined') {
+                            const rootEl = document.getElementById('root');
+                            const root = ReactDOM.createRoot(rootEl);
+                            
+                            class IframeErrorBoundary extends React.Component {
+                                constructor(props) { super(props); this.state = { hasError: false, error: null }; }
+                                static getDerivedStateFromError(error) { return { hasError: true, error: error }; }
+                                render() {
+                                    if (this.state.hasError) {
+                                        return React.createElement('div', {style: {color:'#ff6b6b', padding:'20px', background:'#222', borderRadius:'8px', margin:'20px', border:'1px solid #ff6b6b'}},
+                                            React.createElement('b', null, 'React Runtime Crash:'),
+                                            React.createElement('br'),
+                                            this.state.error.message
+                                        );
+                                    }
+                                    return this.props.children;
+                                }
+                            }
+                            
+                            if(typeof BrowserRouter !== 'undefined') {
+                                root.render(React.createElement(BrowserRouter, null, React.createElement(IframeErrorBoundary, null, React.createElement(App))));
+                            } else {
+                                root.render(React.createElement(IframeErrorBoundary, null, React.createElement(App)));
+                            }
+                        } else {
+                            document.getElementById('root').innerHTML = '<div style="color:#ff6b6b; padding:20px; background:#222; border-radius:8px; margin:20px; font-family:monospace; border: 1px solid #ff6b6b;"><b>Fatal Error:</b><br/>App component missing. AI forgot to generate App.jsx</div>';
+                        }
+                    \`;
+                    document.body.appendChild(script);
 
-                  // Wrap the compiled code in our component execution logic
-                  const finalExecutionCode = compiledCode + "\\n\\n" + \`
-                      class IframeErrorBoundary extends React.Component {
-                          constructor(props) { super(props); this.state = { hasError: false, error: null }; }
-                          static getDerivedStateFromError(error) { return { hasError: true, error: error }; }
-                          render() {
-                              if (this.state.hasError) {
-                                  return React.createElement('div', {style: {color:'#ff6b6b', padding:'20px', background:'#222', borderRadius:'8px', margin:'20px', border:'1px solid #ff6b6b'}},
-                                      React.createElement('b', null, 'Runtime Component Crash:'),
-                                      React.createElement('br'),
-                                      this.state.error.message
-                                  );
-                              }
-                              return this.props.children;
-                          }
-                      }
-
-                      if(typeof App !== 'undefined') {
-                          const root = ReactDOM.createRoot(document.getElementById('root'));
-                          if(typeof BrowserRouter !== 'undefined') {
-                              root.render(React.createElement(BrowserRouter, null, React.createElement(IframeErrorBoundary, null, React.createElement(App))));
-                          } else {
-                              root.render(React.createElement(IframeErrorBoundary, null, React.createElement(App)));
-                          }
-                      } else {
-                          document.getElementById('root').innerHTML = '<div style="color:#ff6b6b; padding:20px; background:#222; border-radius:8px; margin:20px; font-family:monospace; border: 1px solid #ff6b6b;"><b>Fatal Error:</b><br/>App component is missing or failed to compile.</div>';
-                      }
-                  \`;
-
-                  // Inject and run the safe, compiled code
-                  const scriptEl = document.createElement('script');
-                  scriptEl.textContent = finalExecutionCode;
-                  document.body.appendChild(scriptEl);
-
-              } catch(err) {
-                  // 🔥 THIS IS THE MAGIC: It catches Babel syntax errors and paints them red!
-                  if(rootElement) {
-                      rootElement.innerHTML = '<div style="color:#ff6b6b; padding:20px; background:#222; border-radius:8px; margin:20px; font-family:monospace; border: 1px solid #ff6b6b; white-space: pre-wrap;"><b>Babel Compilation Error:</b><br/>' + err.message + '</div>';
-                  }
-              }
-          });
+                } catch (err) {
+                    // Prints exact Babel error (e.g., 'Missing } on line 42')
+                    if(rootElement) {
+                        rootElement.innerHTML = '<div style="color:#ff6b6b; padding:20px; background:#222; border-radius:8px; margin:20px; border: 1px solid #ff6b6b; font-family:monospace; white-space: pre-wrap;"><b>Babel Syntax Error:</b><br/>' + err.message + '</div>';
+                    }
+                }
+            });
         </script>
       `;
 
@@ -482,6 +470,7 @@ function MantuEngineApp() {
             <div className="absolute inset-0 pointer-events-none z-[-1] overflow-hidden"><div className="absolute inset-0 bg-[linear-gradient(to_right,#1f1f23_1px,transparent_1px),linear-gradient(to_bottom,#1f1f23_1px,transparent_1px)] bg-[size:4rem_4rem] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_100%)] opacity-30"></div><div className="absolute top-[10%] left-[20%] w-[30%] h-[30%] bg-blue-600/20 blur-[120px] rounded-full animate-pulse"></div><div className="absolute bottom-[20%] right-[20%] w-[30%] h-[30%] bg-purple-600/20 blur-[120px] rounded-full animate-pulse" style={{animationDelay: '2s'}}></div></div>
             <div className="inline-block px-4 py-1.5 rounded-full border border-blue-500/30 bg-blue-500/10 text-blue-400 text-[10px] font-bold tracking-widest mb-6"><SparkleIcon className="inline mr-2"/> MANTU AI ENTERPRISE</div>
             
+            {/* 🔥 SINGLE HIGH-IMPACT TAGLINE AS REQUESTED */}
             <h1 className="text-5xl md:text-7xl font-black mb-6 text-center tracking-tighter">Build React Apps in <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 via-indigo-500 to-purple-600">Seconds</span></h1>
             <p className="text-gray-400 mb-10 max-w-xl text-center text-sm md:text-base leading-relaxed">Turn your ideas into flawless React + Tailwind applications instantly.</p>
             
