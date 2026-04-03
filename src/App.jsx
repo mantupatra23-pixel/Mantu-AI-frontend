@@ -155,7 +155,8 @@ function MantuEngineApp() {
       setIsConsoleOpen(true);
       try {
           const res = await fetch(`${BACKEND_URL}/api/save-project`, {
-              method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${localStorage.getItem('mantu_token')}` },
+              method: 'POST', 
+              headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${localStorage.getItem('mantu_token')}` },
               body: JSON.stringify({ userId: currentUser.id, title: prompt.substring(0, 30) || 'Untitled React App', files: generatedFiles })
           });
           const data = await res.json();
@@ -186,7 +187,7 @@ function MantuEngineApp() {
   const toggleListening = (targetInput) => {
       if (isListening) { recognitionRef.current?.stop(); setIsListening(false); return; }
       const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-      if (!SpeechRecognition) return alert("Voice Typing is not supported.");
+      if (!SpeechRecognition) return alert("Voice Typing is not supported in this browser.");
       const recognition = new SpeechRecognition();
       recognition.continuous = true; recognition.interimResults = true;
       let initialPrompt = targetInput === 'followUp' ? followUpPrompt : prompt;
@@ -218,7 +219,8 @@ function MantuEngineApp() {
       
       try {
           const res = await fetch(`${BACKEND_URL}/api/build`, { 
-              method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${localStorage.getItem('mantu_token')}` }, 
+              method: 'POST', 
+              headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${localStorage.getItem('mantu_token')}` }, 
               body: JSON.stringify({ prompt: finalPrompt, image: finalImage, existingFiles: isFollowUp ? generatedFiles : {} }) 
           });
           
@@ -263,7 +265,7 @@ function MantuEngineApp() {
       } finally { setIsGenerating(false); }
   };
 
-  // 🔥 100% TRANSPARENT MANUAL COMPILATION ENGINE
+  // 🔥 100% BULLETPROOF LIVE PREVIEW ENGINE
   const renderLivePreview = () => {
       const fileKeys = Object.keys(generatedFiles);
       if (fileKeys.length === 0) {
@@ -302,7 +304,6 @@ function MantuEngineApp() {
           projectEnv.forEach(e => { if (e && e.key && e.key.trim()) envObj[e.key.trim()] = e.value ? e.value.trim() : ''; });
       }
 
-      // Safe escape so we can inject code without breaking HTML scripts
       const safeJsxCode = allJsxCode.replace(/<\/script>/g, '<\\/script>');
 
       const reactImports = `
@@ -335,7 +336,6 @@ function MantuEngineApp() {
             window.addEventListener('DOMContentLoaded', () => {
                 const rootElement = document.getElementById('root');
                 try {
-                    // Manual Babel Compilation to catch exact Syntax Errors
                     const rawCode = document.getElementById('raw-jsx').textContent;
                     const compiled = Babel.transform(rawCode, { presets: ['react', ['env', {modules: false}]] }).code;
                     
@@ -360,11 +360,9 @@ function MantuEngineApp() {
                                 }
                             }
                             
-                            if(typeof BrowserRouter !== 'undefined') {
-                                root.render(React.createElement(BrowserRouter, null, React.createElement(IframeErrorBoundary, null, React.createElement(App))));
-                            } else {
-                                root.render(React.createElement(IframeErrorBoundary, null, React.createElement(App)));
-                            }
+                            // Render App exactly as the AI wrote it. No forced outer Router to prevent Double-Router Crash!
+                            root.render(React.createElement(IframeErrorBoundary, null, React.createElement(App)));
+                            
                         } else {
                             document.getElementById('root').innerHTML = '<div style="color:#ff6b6b; padding:20px; background:#222; border-radius:8px; margin:20px; font-family:monospace; border: 1px solid #ff6b6b;"><b>Fatal Error:</b><br/>App component missing. AI forgot to generate App.jsx</div>';
                         }
@@ -372,7 +370,6 @@ function MantuEngineApp() {
                     document.body.appendChild(script);
 
                 } catch (err) {
-                    // Prints exact Babel error (e.g., 'Missing } on line 42')
                     if(rootElement) {
                         rootElement.innerHTML = '<div style="color:#ff6b6b; padding:20px; background:#222; border-radius:8px; margin:20px; border: 1px solid #ff6b6b; font-family:monospace; white-space: pre-wrap;"><b>Babel Syntax Error:</b><br/>' + err.message + '</div>';
                     }
@@ -392,6 +389,7 @@ function MantuEngineApp() {
     reader.readAsText(file);
   };
 
+  // 🔥 100% COMPLETE PUBLISH LOGIC
   const handlePublish = async () => {
     if(!currentUser) return setIsAuthModalOpen(true);
     
@@ -470,7 +468,6 @@ function MantuEngineApp() {
             <div className="absolute inset-0 pointer-events-none z-[-1] overflow-hidden"><div className="absolute inset-0 bg-[linear-gradient(to_right,#1f1f23_1px,transparent_1px),linear-gradient(to_bottom,#1f1f23_1px,transparent_1px)] bg-[size:4rem_4rem] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_100%)] opacity-30"></div><div className="absolute top-[10%] left-[20%] w-[30%] h-[30%] bg-blue-600/20 blur-[120px] rounded-full animate-pulse"></div><div className="absolute bottom-[20%] right-[20%] w-[30%] h-[30%] bg-purple-600/20 blur-[120px] rounded-full animate-pulse" style={{animationDelay: '2s'}}></div></div>
             <div className="inline-block px-4 py-1.5 rounded-full border border-blue-500/30 bg-blue-500/10 text-blue-400 text-[10px] font-bold tracking-widest mb-6"><SparkleIcon className="inline mr-2"/> MANTU AI ENTERPRISE</div>
             
-            {/* 🔥 SINGLE HIGH-IMPACT TAGLINE AS REQUESTED */}
             <h1 className="text-5xl md:text-7xl font-black mb-6 text-center tracking-tighter">Build React Apps in <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 via-indigo-500 to-purple-600">Seconds</span></h1>
             <p className="text-gray-400 mb-10 max-w-xl text-center text-sm md:text-base leading-relaxed">Turn your ideas into flawless React + Tailwind applications instantly.</p>
             
