@@ -208,7 +208,7 @@ function MantuEngineApp() {
       if (!isFollowUp) setGeneratedFiles({});
       
       const newLogs = [...actionLogs, { id: Date.now(), type: 'user', text: text || "[Image Uploaded as Reference]" }];
-      newLogs.push({ id: Date.now()+1, type: 'log', agent: 'MANTU OS', status: 'Active', details: 'Architecting React App...' });
+      newLogs.push({ id: Date.now()+1, type: 'log', agent: 'MANTU OS', status: 'Active', details: 'Architecting Professional App...' });
       setActionLogs(newLogs);
       setTerminalOutput(prev => prev + `\n> Initiating AI Engines...\n> Building React Structure...`);
       
@@ -265,7 +265,7 @@ function MantuEngineApp() {
       } finally { setIsGenerating(false); }
   };
 
-  // 🔥 100% BULLETPROOF LIVE PREVIEW ENGINE
+  // 🔥 100% BULLETPROOF ZERO-BLANK-SCREEN ENGINE
   const renderLivePreview = () => {
       const fileKeys = Object.keys(generatedFiles);
       if (fileKeys.length === 0) {
@@ -296,7 +296,8 @@ function MantuEngineApp() {
           code = code.replace(/export\s+(const|let|var|function|class)/g, '$1');
           code = code.replace(/export\s+\{[^}]+\};?/g, ''); 
           
-          allJsxCode += `\n/* --- ${key} --- */\n` + code;
+          // 🔥 HACK 3: Safe Concatenation with Semicolons to prevent silent token crashes
+          allJsxCode += `\n/* --- ${key} --- */\n;\n` + code + `\n;\n`;
       });
 
       const envObj = {}; 
@@ -324,8 +325,18 @@ function MantuEngineApp() {
             window.React = React;
             Object.keys(React).forEach(key => window[key] = React[key]);
             
-            if(window.lucideReact) { Object.keys(window.lucideReact).forEach(key => window[key] = window.lucideReact[key]); }
-            if(window.ReactRouterDOM) { Object.keys(window.ReactRouterDOM).forEach(key => window[key] = window.ReactRouterDOM[key]); }
+            if(window.lucideReact) { 
+                Object.keys(window.lucideReact).forEach(key => window[key] = window.lucideReact[key]); 
+                window.Icons = window.lucideReact; // Fallback mapping
+            }
+            if(window.ReactRouterDOM) { 
+                Object.keys(window.ReactRouterDOM).forEach(key => window[key] = window.ReactRouterDOM[key]); 
+                
+                // 🔥 HACK 1: THE CTO ROUTER OVERRIDE!
+                // Sandboxed iframes block History API, causing silent blank screens when AI uses BrowserRouter.
+                // We secretly swap BrowserRouter with MemoryRouter globally to save the app!
+                window.BrowserRouter = window.ReactRouterDOM.MemoryRouter;
+            }
         </script>
         <style>${combinedCss} html, body, #root { width: 100%; min-height: 100vh; margin: 0; padding: 0; background-color: #f9fafb; }</style>
       `;
@@ -339,8 +350,7 @@ function MantuEngineApp() {
                     const rawCode = document.getElementById('raw-jsx').textContent;
                     const compiled = Babel.transform(rawCode, { presets: ['react', ['env', {modules: false}]] }).code;
                     
-                    const script = document.createElement('script');
-                    script.innerHTML = compiled + "\\n\\n" + \`
+                    const renderLogic = \`
                         if(typeof App !== 'undefined') {
                             const rootEl = document.getElementById('root');
                             const root = ReactDOM.createRoot(rootEl);
@@ -360,18 +370,20 @@ function MantuEngineApp() {
                                 }
                             }
                             
-                            // Render App exactly as the AI wrote it. No forced outer Router to prevent Double-Router Crash!
                             root.render(React.createElement(IframeErrorBoundary, null, React.createElement(App)));
                             
                         } else {
-                            document.getElementById('root').innerHTML = '<div style="color:#ff6b6b; padding:20px; background:#222; border-radius:8px; margin:20px; font-family:monospace; border: 1px solid #ff6b6b;"><b>Fatal Error:</b><br/>App component missing. AI forgot to generate App.jsx</div>';
+                            throw new Error("App component missing. AI forgot to generate App.jsx");
                         }
                     \`;
-                    document.body.appendChild(script);
+                    
+                    // 🔥 HACK 2: UNIVERSAL EVAL TRY-CATCH
+                    // If ANY silent error occurs (e.g. undefined variable), eval throws it to the catch block! No more silent blank screens!
+                    eval(compiled + "\\n\\n" + renderLogic);
 
                 } catch (err) {
                     if(rootElement) {
-                        rootElement.innerHTML = '<div style="color:#ff6b6b; padding:20px; background:#222; border-radius:8px; margin:20px; border: 1px solid #ff6b6b; font-family:monospace; white-space: pre-wrap;"><b>Babel Syntax Error:</b><br/>' + err.message + '</div>';
+                        rootElement.innerHTML = '<div style="color:#ff6b6b; padding:20px; background:#222; border-radius:8px; margin:20px; border: 1px solid #ff6b6b; font-family:monospace; white-space: pre-wrap;"><b>Live Preview Crash:</b><br/>' + (err.stack || err.message) + '</div>';
                     }
                 }
             });
@@ -389,7 +401,6 @@ function MantuEngineApp() {
     reader.readAsText(file);
   };
 
-  // 🔥 100% COMPLETE PUBLISH LOGIC
   const handlePublish = async () => {
     if(!currentUser) return setIsAuthModalOpen(true);
     
